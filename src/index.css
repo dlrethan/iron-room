@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    background: #0D0D0D;
+    color: #F0F0F0;
+    color-scheme: dark;
+    font-size: 18px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1rem;
+    line-height: 1.45;
+    background: #0D0D0D;
+    color: #F0F0F0;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  #root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    max-width: 430px;
+    margin-inline: auto;
+    border-inline: 1px solid #2A2A2A;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Barlow Condensed', system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  input, select, textarea {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Strip number input spinners */
+  input[type="number"] { -moz-appearance: textfield; }
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  button { cursor: pointer; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: #0D0D0D; }
+  ::-webkit-scrollbar-thumb { background: #3A3A3A; border-radius: 2px; }
+}
+
+/* ─── Custom utilities ─────────────────────────────────────────────────────── */
+
+@layer utilities {
+  /* SVG ring progress transition — applied via className on the <circle> element */
+  .ring-progress {
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* iPhone safe area — home indicator clearance */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
+  }
+
+  /* Active press feel */
+  .press {
+    transition: transform 80ms ease, box-shadow 80ms ease;
+  }
+  .press:active {
+    transform: scale(0.96);
+  }
+
+  /* Accent glow on active elements */
+  .glow-accent {
+    box-shadow: 0 0 12px rgba(212, 255, 0, 0.3);
+  }
+
+  /* Font shorthands */
+  .font-display { font-family: 'Barlow Condensed', system-ui, sans-serif; }
+  .font-mono    { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+}
