@@ -1,10 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import {
-  getWeightLog,
-  addWeightEntry,
-  getWorkoutLogs,
-  getUserProfile,
-} from '../utils/storage'
+import { useApp } from '../context/AppContext'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -385,13 +380,13 @@ function OneRMEstimator({ exerciseNames, prs }) {
 // ─── Main Progress Component ──────────────────────────────────────────────────
 
 export default function Progress() {
-  const dateStr    = todayISO()
-  const profile    = getUserProfile()
+  const dateStr = todayISO()
+
+  const { profile, weightLog, workoutLogs, addWeightEntry } = useApp()
   const startWeight = profile.startingWeight ?? 280
 
-  const [weightLog, setWeightLog] = useState(() => getWeightLog())
-  const [prs]                     = useState(() => computePRs(getWorkoutLogs()))
-  const [inputVal, setInputVal]   = useState('')
+  const [prs]                       = useState(() => computePRs(workoutLogs))
+  const [inputVal, setInputVal]     = useState('')
   const [inputError, setInputError] = useState('')
   const inputRef = useRef()
 
@@ -404,9 +399,8 @@ export default function Progress() {
     }
     setInputError('')
     addWeightEntry({ date: dateStr, weightLbs: val })
-    setWeightLog(getWeightLog())
     setInputVal('')
-  }, [inputVal, dateStr])
+  }, [inputVal, dateStr, addWeightEntry])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') logWeight()

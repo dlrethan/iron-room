@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react'
+import { useApp } from '../context/AppContext'
 import {
   getProgramDay,
   getTodaysWorkout,
   getTodaysMeals,
   getMealLogForDate,
-  saveMealLog,
-  getUserProfile,
   getWorkoutLogForDate,
-} from '../utils/storage'
+} from '../utils/planUtils'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -283,18 +282,18 @@ export default function Dashboard({ onNavigate }) {
   const today = new Date()
   const dateStr = todayISO()
 
-  // Live data from storage
-  const profile      = getUserProfile()
-  const progDay      = getProgramDay(today)          // { day, week } | null
-  const workout      = getTodaysWorkout(today)       // exercises + rpe | null
-  const mealPlanDay  = getTodaysMeals(today)         // { dayOfWeek, meals } | null
-  const existingLogs = getWorkoutLogForDate(dateStr) // array
+  const { profile, workoutPlans, mealPlans, workoutLogs, mealLogs, saveMealLog } = useApp()
+
+  const progDay      = getProgramDay(today, profile.programStartDate)
+  const workout      = getTodaysWorkout(today, workoutPlans, profile.activeWorkoutPlanId, profile.programStartDate)
+  const mealPlanDay  = getTodaysMeals(today, mealPlans, profile.activeMealPlanId)
+  const existingLogs = getWorkoutLogForDate(workoutLogs, dateStr)
 
   const isWorkoutLogged = existingLogs.length > 0
 
-  // Meal log state (persisted)
+  // Meal log state (optimistic — seeded from context)
   const [mealLog, setMealLog] = useState(
-    () => getMealLogForDate(dateStr) ?? { date: dateStr, meals: [] }
+    () => getMealLogForDate(mealLogs, dateStr) ?? { date: dateStr, meals: [] }
   )
 
   const toggleMealEaten = useCallback((mealName) => {
@@ -310,7 +309,7 @@ export default function Dashboard({ onNavigate }) {
       saveMealLog(next)
       return next
     })
-  }, [mealPlanDay, dateStr])
+  }, [mealPlanDay, dateStr, saveMealLog])
 
   // Derived
   const { weekday, monthDay } = formatHeaderDate(today)

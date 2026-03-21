@@ -1,13 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import {
-  getActiveWorkoutPlan,
-  getActiveMealPlan,
-  saveWorkoutPlan,
-  saveMealPlan,
-  setActivePlanIds,
-  getActivePlanIds,
-  getProgramDay,
-} from '../utils/storage'
+import { useApp } from '../context/AppContext'
+import { getProgramDay, getActiveWorkoutPlan, getActiveMealPlan } from '../utils/planUtils'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -413,7 +406,7 @@ function validateImport(raw) {
   return { ok: true, plan: parsed }
 }
 
-function ImportModal({ onClose, onImported }) {
+function ImportModal({ onClose, onImported, profile, workoutPlans, mealPlans, saveWorkoutPlan, saveMealPlan, setActivePlanIds }) {
   const [raw, setRaw]         = useState('')
   const [error, setError]     = useState('')
   const [preview, setPreview] = useState(null)
@@ -427,20 +420,19 @@ function ImportModal({ onClose, onImported }) {
     setStep('confirm')
   }
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     const plan = { ...preview, id: crypto.randomUUID(), createdAt: preview.createdAt ?? new Date().toISOString() }
-    const { workoutPlanId, mealPlanId } = getActivePlanIds()
 
     if (plan.planType === 'workout') {
-      saveWorkoutPlan(plan)
-      setActivePlanIds({ workoutPlanId: plan.id, mealPlanId })
+      await saveWorkoutPlan(plan)
+      await setActivePlanIds({ workoutPlanId: plan.id, mealPlanId: profile.activeMealPlanId })
     } else {
-      saveMealPlan(plan)
-      setActivePlanIds({ workoutPlanId, mealPlanId: plan.id })
+      await saveMealPlan(plan)
+      await setActivePlanIds({ workoutPlanId: profile.activeWorkoutPlanId, mealPlanId: plan.id })
     }
     onImported()
     onClose()
-  }, [preview, onImported, onClose])
+  }, [preview, onImported, onClose, profile, saveWorkoutPlan, saveMealPlan, setActivePlanIds])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
@@ -575,17 +567,18 @@ function ImportModal({ onClose, onImported }) {
 // ─── Main Plans Component ─────────────────────────────────────────────────────
 
 export default function Plans() {
-  const progDay = getProgramDay()
+  const { profile, workoutPlans, mealPlans, saveWorkoutPlan, saveMealPlan, setActivePlanIds } = useApp()
+
+  const progDay = getProgramDay(new Date(), profile.programStartDate)
   const currentWeek = progDay?.week ?? 1
 
-  const [workoutPlan, setWorkoutPlan] = useState(() => getActiveWorkoutPlan())
-  const [mealPlan,    setMealPlan]    = useState(() => getActiveMealPlan())
-  const [showImport,  setShowImport]  = useState(false)
+  const workoutPlan = getActiveWorkoutPlan(workoutPlans, profile.activeWorkoutPlanId)
+  const mealPlan    = getActiveMealPlan(mealPlans, profile.activeMealPlanId)
 
-  const handleImported = useCallback(() => {
-    setWorkoutPlan(getActiveWorkoutPlan())
-    setMealPlan(getActiveMealPlan())
-  }, [])
+  const [showImport, setShowImport] = useState(false)
+
+  // handleImported is a no-op — context state updates reactively
+  const handleImported = useCallback(() => {}, [])
 
   return (
     <main className="flex flex-col flex-1 overflow-y-auto pb-24">
@@ -650,6 +643,12 @@ export default function Plans() {
         <ImportModal
           onClose={() => setShowImport(false)}
           onImported={handleImported}
+          profile={profile}
+          workoutPlans={workoutPlans}
+          mealPlans={mealPlans}
+          saveWorkoutPlan={saveWorkoutPlan}
+          saveMealPlan={saveMealPlan}
+          setActivePlanIds={setActivePlanIds}
         />
       )}
 

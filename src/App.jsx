@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useApp } from './context/AppContext'
 import Dashboard    from './pages/Dashboard'
 import WorkoutPage  from './pages/Workout'
 import MealsPage    from './pages/Meals'
@@ -185,8 +186,26 @@ function BottomNav({ active, onSelect }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-iron-bg gap-4">
+      <div
+        className="w-10 h-10 rounded-full border-2 border-iron-border border-t-iron-accent"
+        style={{ animation: 'spin 0.8s linear infinite' }}
+      />
+      <p className="font-display text-[11px] uppercase tracking-widest text-iron-muted">
+        Loading…
+      </p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('home')
+  const { loading } = useApp()
+
+  if (loading) return <LoadingScreen />
 
   return (
     <>

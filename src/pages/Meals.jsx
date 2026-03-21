@@ -1,11 +1,10 @@
 import { useState, useCallback, useMemo } from 'react'
+import { useApp } from '../context/AppContext'
 import {
   getTodaysMeals,
   getMealLogForDate,
-  saveMealLog,
-  getUserProfile,
   getActiveMealPlan,
-} from '../utils/storage'
+} from '../utils/planUtils'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -686,12 +685,13 @@ function PrepView({ mealPlan }) {
 export default function Meals() {
   const dateStr = todayISO()
 
+  const { profile, mealPlans, mealLogs, saveMealLog } = useApp()
+
   const [activeView, setActiveView] = useState('today')
 
   // Plan data
-  const mealPlanDay = getTodaysMeals()
-  const profile     = getUserProfile()
-  const activePlan  = getActiveMealPlan()
+  const mealPlanDay = getTodaysMeals(new Date(), mealPlans, profile.activeMealPlanId)
+  const activePlan  = getActiveMealPlan(mealPlans, profile.activeMealPlanId)
 
   // Targets — prefer meal plan's dailyTargets, fall back to user profile
   const targets = {
@@ -703,11 +703,11 @@ export default function Meals() {
 
   // Meal log state
   const [mealLog, setMealLog] = useState(
-    () => getMealLogForDate(dateStr) ?? { date: dateStr, meals: [], customEntries: [] }
+    () => getMealLogForDate(mealLogs, dateStr) ?? { date: dateStr, meals: [], customEntries: [] }
   )
   const [showCustomSheet, setShowCustomSheet] = useState(false)
 
-  const persist = useCallback((nextLog) => { saveMealLog(nextLog) }, [])
+  const persist = useCallback((nextLog) => { saveMealLog(nextLog) }, [saveMealLog])
 
   const toggleMeal = useCallback((mealName) => {
     setMealLog(prev => {

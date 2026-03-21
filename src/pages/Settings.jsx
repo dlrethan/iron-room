@@ -1,12 +1,5 @@
 import { useState, useCallback } from 'react'
-import {
-  getUserProfile,
-  saveUserProfile,
-  getProgramStartDate,
-  setProgramStartDate,
-  addWeightEntry,
-  getWeightLog,
-} from '../utils/storage'
+import { useApp } from '../context/AppContext'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -144,17 +137,15 @@ function ResetModal({ onCancel, onConfirm }) {
 export default function Settings() {
   const dateStr = todayISO()
 
-  // Init form from localStorage
-  const [form, setForm] = useState(() => {
-    const p = getUserProfile()
-    return {
-      programStartDate: getProgramStartDate(),
-      calories:         String(p.calorieTarget  ?? 2000),
-      protein:          String(p.proteinTarget  ?? 180),
-      fat:              String(p.fatTarget       ?? 55),
-      currentWeight:    '',
-    }
-  })
+  const { profile, weightLog, saveProfile, addWeightEntry, resetAll } = useApp()
+
+  const [form, setForm] = useState(() => ({
+    programStartDate: profile.programStartDate,
+    calories:         String(profile.calorieTarget  ?? 2000),
+    protein:          String(profile.proteinTarget  ?? 180),
+    fat:              String(profile.fatTarget       ?? 55),
+    currentWeight:    '',
+  }))
 
   const [saved,      setSaved]      = useState(false)
   const [errors,     setErrors]     = useState({})
@@ -182,35 +173,32 @@ export default function Settings() {
     return errs
   }
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
 
-    const profile = getUserProfile()
-    saveUserProfile({
-      ...profile,
-      calorieTarget: Number(form.calories),
-      proteinTarget: Number(form.protein),
-      fatTarget:     Number(form.fat),
+    await saveProfile({
+      calorieTarget:   Number(form.calories),
+      proteinTarget:   Number(form.protein),
+      fatTarget:       Number(form.fat),
+      programStartDate: form.programStartDate,
     })
-    setProgramStartDate(form.programStartDate)
 
     if (form.currentWeight) {
-      addWeightEntry({ date: dateStr, weightLbs: Number(form.currentWeight) })
+      await addWeightEntry({ date: dateStr, weightLbs: Number(form.currentWeight) })
       setForm(prev => ({ ...prev, currentWeight: '' }))
     }
 
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
-  }, [form, dateStr])
+  }, [form, dateStr, saveProfile, addWeightEntry])
 
-  const handleReset = useCallback(() => {
-    localStorage.clear()
-    window.location.reload()
-  }, [])
+  const handleReset = useCallback(async () => {
+    await resetAll()
+  }, [resetAll])
 
   // Today's logged weight for display
-  const todayWeight = getWeightLog().find(e => e.date === dateStr)
+  const todayWeight = weightLog.find(e => e.date === dateStr)
 
   const inputClass = (field) => [
     'w-full h-[52px] bg-iron-bg border rounded-iron',

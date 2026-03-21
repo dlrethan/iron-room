@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useApp } from '../context/AppContext'
 import {
   getTodaysWorkout,
   getProgramDay,
   getPreviousLogForDay,
   getWorkoutLogForDate,
-  saveWorkoutLog,
-} from '../utils/storage'
+} from '../utils/planUtils'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -618,21 +618,26 @@ export default function Workout({ onNavigate }) {
   const today = new Date()
   const dateStr = todayISO()
 
-  const workout  = getTodaysWorkout(today)
-  const progDay  = getProgramDay(today)
+  const { profile, workoutPlans, workoutLogs, saveWorkoutLog } = useApp()
+
+  const workout  = getTodaysWorkout(today, workoutPlans, profile.activeWorkoutPlanId, profile.programStartDate)
+  const progDay  = getProgramDay(today, profile.programStartDate)
   const progWeek = progDay?.week ?? 1
 
   // Load previous session for "LAST:" display
-  const prevLog = workout ? getPreviousLogForDay(workout.dayName, dateStr) : null
+  const prevLog = workout ? getPreviousLogForDay(workoutLogs, workout.dayName, dateStr) : null
 
-  // Initialize exercise logs — restore from localStorage if session exists
+  const existingLog = workout
+    ? getWorkoutLogForDate(workoutLogs, dateStr).find(l => l.dayName === workout.dayName)
+    : null
+
+  // Initialize exercise logs — restore from Supabase if session exists
   const [exerciseLogs, setExerciseLogs] = useState(() => {
     if (!workout) return {}
-    const existing = getWorkoutLogForDate(dateStr).find(l => l.dayName === workout.dayName)
     const result = {}
     workout.exercises.forEach(ex => {
-      if (existing) {
-        const found = existing.exercises?.find(e => e.name === ex.name)
+      if (existingLog) {
+        const found = existingLog.exercises?.find(e => e.name === ex.name)
         result[ex.name] = {
           sets:  found?.sets?.length ? found.sets : Array.from({ length: ex.sets }, emptySet),
           notes: found?.notes ?? '',
@@ -650,11 +655,7 @@ export default function Workout({ onNavigate }) {
   const [expandedIdx, setExpandedIdx] = useState(0)
   const [showRPEGuide, setShowRPEGuide]   = useState(false)
   const [backdownSheet, setBackdownSheet] = useState(null) // { exerciseName, topWeight }
-  const [isFinished, setIsFinished] = useState(() => {
-    if (!workout) return false
-    const existing = getWorkoutLogForDate(dateStr).find(l => l.dayName === workout.dayName)
-    return existing?.completedAt != null
-  })
+  const [isFinished, setIsFinished] = useState(() => existingLog?.completedAt != null)
 
   // ── Derived counts ──────────────────────────────────────────────────────────
 
@@ -667,6 +668,7 @@ export default function Workout({ onNavigate }) {
 
   const persistLog = useCallback((logs, completed = false) => {
     if (!workout) return
+    // Fire-and-forget — optimistic update happens in context
     saveWorkoutLog({
       date:        dateStr,
       dayName:     workout.dayName,
