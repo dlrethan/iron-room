@@ -221,7 +221,7 @@ function BackdownSheet({ topWeight, onUseWeight, onClose }) {
 
 // ─── Set Row ──────────────────────────────────────────────────────────────────
 
-function SetRow({ setNum, set, onChange, onComplete, disabled }) {
+function SetRow({ setNum, set, onChange, onComplete, onUncomplete, disabled }) {
   const weightRef = useRef(null)
   const canComplete = set.weight !== '' && set.reps !== '' && set.rpe !== null
 
@@ -233,7 +233,6 @@ function SetRow({ setNum, set, onChange, onComplete, disabled }) {
   }, [])
 
   if (set.completed) {
-    // Compact completed row
     return (
       <div className="relative flex items-center gap-3 px-3 py-2.5 bg-iron-surface rounded-iron overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-iron-accent" />
@@ -243,13 +242,23 @@ function SetRow({ setNum, set, onChange, onComplete, disabled }) {
         <span className="font-display text-[10px] uppercase tracking-widest text-iron-muted flex-shrink-0 w-9">
           Set {setNum}
         </span>
-        <span className="font-mono text-sm text-iron-text">
+        <span className="font-mono text-sm text-iron-text flex-1">
           {set.weight} <span className="text-iron-muted text-xs">lb</span>
           {' · '}
           {set.reps} <span className="text-iron-muted text-xs">reps</span>
           {' · '}
           <span className="text-iron-accent">RPE {set.rpe}</span>
         </span>
+        <button
+          onClick={onUncomplete}
+          className="press flex-shrink-0 flex items-center justify-center w-[32px] h-[32px] rounded-iron border border-iron-border2 text-iron-faint"
+          aria-label={`Edit set ${setNum}`}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
     )
   }
@@ -359,7 +368,7 @@ function SetRow({ setNum, set, onChange, onComplete, disabled }) {
 
 // ─── Exercise Card ────────────────────────────────────────────────────────────
 
-function ExerciseCard({ exercise, exLog, prevSets, isExpanded, onToggle, onUpdateSet, onCompleteSet, onAddSet, onUpdateNotes, onOpenBackdown }) {
+function ExerciseCard({ exercise, exLog, prevSets, isExpanded, onToggle, onUpdateSet, onCompleteSet, onUncompleteSet, onAddSet, onUpdateNotes, onOpenBackdown }) {
   const completedCount = exLog.sets.filter(s => s.completed).length
   const allComplete = completedCount === exercise.sets && completedCount > 0
 
@@ -473,6 +482,7 @@ function ExerciseCard({ exercise, exLog, prevSets, isExpanded, onToggle, onUpdat
                 set={set}
                 onChange={(field, value) => onUpdateSet(i, field, value)}
                 onComplete={() => onCompleteSet(i)}
+                onUncomplete={() => onUncompleteSet(i)}
                 disabled={false}
               />
             ))}
@@ -816,6 +826,17 @@ export default function Workout({ onNavigate }) {
     }
   }, [persistLog])
 
+  const uncompleteSet = useCallback((exerciseName, setIdx) => {
+    setExerciseLogs(prev => {
+      const exLog = prev[exerciseName]
+      const sets  = [...exLog.sets]
+      sets[setIdx] = { ...sets[setIdx], completed: false }
+      const next = { ...prev, [exerciseName]: { ...exLog, sets } }
+      persistLog(next)
+      return next
+    })
+  }, [persistLog])
+
   const addSet = useCallback((exerciseName) => {
     setExerciseLogs(prev => {
       const exLog = prev[exerciseName]
@@ -901,6 +922,7 @@ export default function Workout({ onNavigate }) {
               onToggle={() => setExpandedIdx(prev => prev === idx ? null : idx)}
               onUpdateSet={(setIdx, field, value) => updateSet(ex.name, setIdx, field, value)}
               onCompleteSet={setIdx => completeSet(ex.name, setIdx, ex.restSeconds)}
+              onUncompleteSet={setIdx => uncompleteSet(ex.name, setIdx)}
               onAddSet={() => addSet(ex.name)}
               onUpdateNotes={notes => updateNotes(ex.name, notes)}
               onOpenBackdown={(tw) => setBackdownSheet({ exerciseName: ex.name, topWeight: tw })}
