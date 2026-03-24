@@ -237,7 +237,55 @@ function BottomNav({ tabs, active, onSelect }) {
   )
 }
 
-// ─── Loading screen ─────────────────────────────────────────────────────────────
+// ─── Admin mode switcher ───────────────────────────────────────────────────────
+
+const PREVIEW_ROLES = ['athlete', 'coach', 'both']
+
+function AdminBar({ previewRole, onSet }) {
+  return (
+    <div
+      className="flex items-center gap-2 px-3 border-b"
+      style={{
+        height: '36px',
+        background: '#120F00',
+        borderColor: 'rgba(245,158,11,0.25)',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        className="font-display uppercase tracking-widest"
+        style={{ fontSize: '9px', color: '#F59E0B', letterSpacing: '0.14em' }}
+      >
+        ⚡ Admin · View:
+      </span>
+      <div className="flex gap-1 ml-1">
+        {PREVIEW_ROLES.map(r => (
+          <button
+            key={r}
+            onClick={() => onSet(r)}
+            className="press border rounded"
+            style={{
+              fontSize: '9px',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              padding: '2px 8px',
+              lineHeight: 1.4,
+              background:     previewRole === r ? '#F59E0B' : 'transparent',
+              color:          previewRole === r ? '#0D0D0D' : '#F59E0B',
+              borderColor:    previewRole === r ? '#F59E0B' : 'rgba(245,158,11,0.35)',
+            }}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Loading screen ────────────────────────────────────────────────────────────
 
 function LoadingScreen() {
   return (
@@ -259,21 +307,32 @@ function LoadingScreen() {
 export default function App() {
   const { authLoading, user, loading, profile } = useApp()
 
-  const role = profile?.role ?? 'athlete'
-  const tabs = getTabsForRole(role)
+  const isAdmin = profile?.isAdmin ?? false
+  const realRole = profile?.role ?? 'athlete'
 
-  const [activeTab, setActiveTab] = useState('home')
+  const [activeTab,   setActiveTab]   = useState('home')
+  const [previewRole, setPreviewRole] = useState(realRole)
 
   if (authLoading) return <LoadingScreen />
   if (!user)       return <Auth />
   if (loading)     return <LoadingScreen />
   if (!profile?.onboarded) return <OnboardingPage />
 
-  // Ensure the active tab is valid for this role (e.g. coach has no 'home')
-  const validTab = tabs.some(t => t.id === activeTab) ? activeTab : getDefaultTab(role)
+  // Admins use previewRole; everyone else uses their real role
+  const effectiveRole = isAdmin ? previewRole : realRole
+  const tabs          = getTabsForRole(effectiveRole)
+
+  // Ensure the active tab exists in the current tab set
+  const validTab = tabs.some(t => t.id === activeTab) ? activeTab : getDefaultTab(effectiveRole)
+
+  const handlePreviewRole = (r) => {
+    setPreviewRole(r)
+    setActiveTab(getDefaultTab(r))
+  }
 
   return (
     <>
+      {isAdmin && <AdminBar previewRole={previewRole} onSet={handlePreviewRole} />}
       <ActivePage tab={validTab} onNavigate={setActiveTab} />
       <BottomNav tabs={tabs} active={validTab} onSelect={setActiveTab} />
     </>
