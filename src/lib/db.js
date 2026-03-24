@@ -1,5 +1,13 @@
 import { supabase } from './supabase'
 
+// ─── Auth helper ──────────────────────────────────────────────────────────────
+
+async function getUserId() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) throw new Error('Not authenticated')
+  return session.user.id
+}
+
 // ─── Normalizers ──────────────────────────────────────────────────────────────
 
 function rowToProfile(row) {
@@ -15,9 +23,9 @@ function rowToProfile(row) {
   }
 }
 
-function profileToRow(p) {
+function profileToRow(p, userId) {
   return {
-    id:                      1,
+    user_id:                 userId,
     starting_weight:         p.startingWeight,
     calorie_target:          p.calorieTarget,
     protein_target:          p.proteinTarget,
@@ -35,9 +43,9 @@ function rowToPlan(row) {
   return { id: row.id, ...row.data }
 }
 
-function planToRow(plan) {
+function planToRow(plan, userId) {
   const { id, ...data } = plan
-  return { id, plan_name: data.planName, data }
+  return { id, user_id: userId, plan_name: data.planName, data }
 }
 
 function rowToWorkoutLog(row) {
@@ -49,8 +57,9 @@ function rowToWorkoutLog(row) {
   }
 }
 
-function workoutLogToRow(log) {
+function workoutLogToRow(log, userId) {
   return {
+    user_id:      userId,
     date:         log.date,
     day_name:     log.dayName,
     completed_at: log.completedAt ?? null,
@@ -66,8 +75,9 @@ function rowToMealLog(row) {
   }
 }
 
-function mealLogToRow(log) {
+function mealLogToRow(log, userId) {
   return {
+    user_id:        userId,
     date:           log.date,
     meals:          log.meals ?? [],
     custom_entries: log.customEntries ?? [],
@@ -81,12 +91,21 @@ function rowToWeightEntry(row) {
 // ─── User Profile ─────────────────────────────────────────────────────────────
 
 export async function fetchProfile() {
-  const { data } = await supabase.from('user_profile').select('*').eq('id', 1).maybeSingle()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return null
+  const { data } = await supabase
+    .from('user_profile')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .maybeSingle()
   return data ? rowToProfile(data) : null
 }
 
 export async function upsertProfile(profile) {
-  const { error } = await supabase.from('user_profile').upsert(profileToRow(profile))
+  const userId = await getUserId()
+  const { error } = await supabase
+    .from('user_profile')
+    .upsert(profileToRow(profile, userId), { onConflict: 'user_id' })
   if (error) throw error
 }
 
@@ -99,7 +118,8 @@ export async function fetchWorkoutPlans() {
 }
 
 export async function upsertWorkoutPlan(plan) {
-  const { error } = await supabase.from('workout_plans').upsert(planToRow(plan))
+  const userId = await getUserId()
+  const { error } = await supabase.from('workout_plans').upsert(planToRow(plan, userId))
   if (error) throw error
 }
 
@@ -112,7 +132,8 @@ export async function fetchMealPlans() {
 }
 
 export async function upsertMealPlan(plan) {
-  const { error } = await supabase.from('meal_plans').upsert(planToRow(plan))
+  const userId = await getUserId()
+  const { error } = await supabase.from('meal_plans').upsert(planToRow(plan, userId))
   if (error) throw error
 }
 
@@ -125,10 +146,10 @@ export async function fetchWorkoutLogs() {
 }
 
 export async function upsertWorkoutLog(log) {
-  const row = workoutLogToRow(log)
+  const userId = await getUserId()
   const { error } = await supabase
     .from('workout_logs')
-    .upsert(row, { onConflict: 'date,day_name' })
+    .upsert(workoutLogToRow(log, userId), { onConflict: 'user_id,date,day_name' })
   if (error) throw error
 }
 
@@ -141,10 +162,10 @@ export async function fetchMealLogs() {
 }
 
 export async function upsertMealLog(log) {
-  const row = mealLogToRow(log)
+  const userId = await getUserId()
   const { error } = await supabase
     .from('meal_logs')
-    .upsert(row, { onConflict: 'date' })
+    .upsert(mealLogToRow(log, userId), { onConflict: 'user_id,date' })
   if (error) throw error
 }
 
@@ -157,9 +178,10 @@ export async function fetchWeightLog() {
 }
 
 export async function upsertWeightEntry(entry) {
+  const userId = await getUserId()
   const { error } = await supabase
     .from('weight_log')
-    .upsert({ date: entry.date, weight_lbs: entry.weightLbs }, { onConflict: 'date' })
+    .upsert({ user_id: userId, date: entry.date, weight_lbs: entry.weightLbs }, { onConflict: 'user_id,date' })
   if (error) throw error
 }
 
@@ -171,12 +193,13 @@ export async function deleteWeightEntry(date) {
 // ─── Reset (danger zone) ──────────────────────────────────────────────────────
 
 export async function deleteAllUserData() {
+  const userId = await getUserId()
   await Promise.all([
-    supabase.from('workout_logs').delete().gte('date', '1970-01-01'),
-    supabase.from('meal_logs').delete().gte('date', '1970-01-01'),
-    supabase.from('weight_log').delete().gte('date', '1970-01-01'),
-    supabase.from('workout_plans').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
-    supabase.from('meal_plans').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
-    supabase.from('user_profile').delete().eq('id', 1),
+    supabase.from('workout_logs').delete().eq('user_id', userId),
+    supabase.from('meal_logs').delete().eq('user_id', userId),
+    supabase.from('weight_log').delete().eq('user_id', userId),
+    supabase.from('workout_plans').delete().eq('user_id', userId),
+    supabase.from('meal_plans').delete().eq('user_id', userId),
+    supabase.from('user_profile').delete().eq('user_id', userId),
   ])
 }

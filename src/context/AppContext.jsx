@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import * as db from '../lib/db'
 import { seedWorkoutPlan, seedMealPlan, defaultUserProfile, DEFAULT_PROGRAM_START_DATE } from '../data/seedData'
 
@@ -15,22 +16,55 @@ export function useApp() {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function AppProvider({ children }) {
-  const [loading, setLoading]       = useState(true)
-  const [profile, setProfile]       = useState(null)
-  const [workoutPlans, setWorkoutPlans] = useState([])
-  const [mealPlans, setMealPlans]   = useState([])
-  const [workoutLogs, setWorkoutLogs] = useState([])
-  const [mealLogs, setMealLogs]     = useState([])
-  const [weightLog, setWeightLog]   = useState([])
+  const [user, setUser]               = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
-  // ── Load / seed on mount ───────────────────────────────────────────────────
+  const [loading, setLoading]           = useState(true)
+  const [profile, setProfile]           = useState(null)
+  const [workoutPlans, setWorkoutPlans] = useState([])
+  const [mealPlans, setMealPlans]       = useState([])
+  const [workoutLogs, setWorkoutLogs]   = useState([])
+  const [mealLogs, setMealLogs]         = useState([])
+  const [weightLog, setWeightLog]       = useState([])
+
+  // ── Auth state ────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setAuthLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // ── Load / seed on auth ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      // Signed out — clear all state
+      setProfile(null)
+      setWorkoutPlans([])
+      setMealPlans([])
+      setWorkoutLogs([])
+      setMealLogs([])
+      setWeightLog([])
+      setLoading(false)
+      return
+    }
+
     async function load() {
+      setLoading(true)
       let prof = await db.fetchProfile()
 
       if (!prof) {
-        // First launch — seed everything
+        // First launch for this user — seed everything
         const workoutPlan = { ...seedWorkoutPlan, id: crypto.randomUUID(), planName: seedWorkoutPlan.planName }
         const mealPlan    = { ...seedMealPlan,    id: crypto.randomUUID(), planName: seedMealPlan.planName }
 
@@ -66,7 +100,7 @@ export function AppProvider({ children }) {
     }
 
     load()
-  }, [])
+  }, [user, authLoading])
 
   // ── Profile mutations ──────────────────────────────────────────────────────
 
@@ -147,9 +181,17 @@ export function AppProvider({ children }) {
     window.location.reload()
   }, [])
 
+  // ── Sign out ──────────────────────────────────────────────────────────────
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut()
+  }, [])
+
   // ─────────────────────────────────────────────────────────────────────────
 
   const value = {
+    user,
+    authLoading,
     loading,
     profile,
     workoutPlans,
@@ -166,6 +208,7 @@ export function AppProvider({ children }) {
     addWeightEntry,
     deleteWeightEntry,
     resetAll,
+    signOut,
   }
 
   return (

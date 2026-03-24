@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useApp } from './context/AppContext'
+import Auth from './pages/Auth'
 import Dashboard    from './pages/Dashboard'
 import WorkoutPage  from './pages/Workout'
 import MealsPage    from './pages/Meals'
@@ -203,8 +204,10 @@ function LoadingScreen() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home')
-  const { loading } = useApp()
+  const { authLoading, user, loading } = useApp()
 
+  if (authLoading) return <LoadingScreen />
+  if (!user) return <Auth />
   if (loading) return <LoadingScreen />
 
   return (

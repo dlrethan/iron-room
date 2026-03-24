@@ -137,7 +137,7 @@ function ResetModal({ onCancel, onConfirm }) {
 export default function Settings() {
   const dateStr = todayISO()
 
-  const { profile, weightLog, saveProfile, addWeightEntry, resetAll } = useApp()
+  const { profile, weightLog, user, saveProfile, addWeightEntry, resetAll, signOut } = useApp()
 
   const [form, setForm] = useState(() => ({
     programStartDate: profile.programStartDate,
@@ -379,6 +379,24 @@ export default function Settings() {
             </div>
           )}
         </div>
+
+        {/* ── Account ──────────────────────────────────────────────────────── */}
+        <section className="bg-iron-surface border border-iron-border rounded-iron overflow-hidden">
+          <div className="px-4 py-3 border-b border-iron-border bg-iron-bg">
+            <h2 className="font-display font-bold text-iron-text uppercase text-sm tracking-wider">Account</h2>
+          </div>
+          <div className="px-4 py-4 flex flex-col gap-3">
+            <p className="font-mono text-[12px] text-iron-muted">
+              Signed in as <span className="text-iron-text">{user?.email}</span>
+            </p>
+            <button
+              onClick={signOut}
+              className="press w-full h-[52px] bg-transparent border border-iron-border2 rounded-iron font-display font-bold text-sm uppercase tracking-wider text-iron-muted"
+            >
+              Sign Out
+            </button>
+          </div>
+        </section>
 
         {/* ── Danger zone ──────────────────────────────────────────────────── */}
         <section className="bg-iron-surface border border-iron-danger/30 rounded-iron overflow-hidden">
