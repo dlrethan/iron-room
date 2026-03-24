@@ -1,29 +1,17 @@
+import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-
-// ─── Placeholder card ──────────────────────────────────────────────────────────
-
-function ComingSoonCard({ icon, title, description }) {
-  return (
-    <div className="bg-iron-surface border border-iron-border rounded-iron p-5 flex items-start gap-4">
-      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-iron-accent/10 border border-iron-accent/20 flex items-center justify-center text-iron-accent">
-        {icon}
-      </div>
-      <div className="flex flex-col gap-1">
-        <span className="font-display font-black text-iron-text text-sm uppercase tracking-wider">
-          {title}
-        </span>
-        <span className="font-mono text-[12px] text-iron-muted leading-relaxed">
-          {description}
-        </span>
-        <span className="font-display text-[10px] uppercase tracking-widest text-iron-accent/60 mt-1">
-          Coming soon
-        </span>
-      </div>
-    </div>
-  )
-}
+import { supabase } from '../lib/supabase'
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
+
+function IconMail() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M2 7l10 7 10-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 function IconUsers() {
   return (
@@ -46,15 +34,6 @@ function IconClipboard() {
   )
 }
 
-function IconMail() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M2 7l10 7 10-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 function IconChart() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -64,17 +43,151 @@ function IconChart() {
   )
 }
 
+// ─── Invite form ───────────────────────────────────────────────────────────────
+
+function InviteClient() {
+  const [email,   setEmail]   = useState('')
+  const [status,  setStatus]  = useState(null) // null | 'sending' | 'sent' | 'error'
+  const [errMsg,  setErrMsg]  = useState('')
+
+  const handleInvite = async (e) => {
+    e.preventDefault()
+    const trimmed = email.trim()
+    if (!trimmed) return
+
+    setStatus('sending')
+    setErrMsg('')
+
+    const { data: { session } } = await supabase.auth.getSession()
+
+    const res = await supabase.functions.invoke('invite-client', {
+      body: { clientEmail: trimmed },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+
+    if (res.error || res.data?.error) {
+      setErrMsg(res.error?.message ?? res.data?.error ?? 'Something went wrong')
+      setStatus('error')
+      return
+    }
+
+    setStatus('sent')
+    setEmail('')
+  }
+
+  const reset = () => { setStatus(null); setErrMsg('') }
+
+  // ── Sent state ──────────────────────────────────────────────────────────────
+  if (status === 'sent') {
+    return (
+      <div className="bg-iron-surface border border-iron-border rounded-iron p-5">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-iron-success/10 border border-iron-success/30 flex items-center justify-center text-iron-success">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12l5 5L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-1 flex-1">
+            <span className="font-display font-black text-iron-text text-sm uppercase tracking-wider">
+              Invite sent
+            </span>
+            <span className="font-mono text-[12px] text-iron-muted leading-relaxed">
+              Your client will receive a styled invite email with a magic link to join IronRoom.
+            </span>
+            <button
+              onClick={reset}
+              className="press mt-3 self-start font-display text-[10px] uppercase tracking-widest text-iron-accent border-0 bg-transparent p-0"
+            >
+              Invite another →
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Form ────────────────────────────────────────────────────────────────────
+  return (
+    <div className="bg-iron-surface border border-iron-border rounded-iron overflow-hidden">
+      <div className="px-4 py-3 border-b border-iron-border bg-iron-bg flex items-center gap-3">
+        <span className="text-iron-accent"><IconMail /></span>
+        <h2 className="font-display font-bold text-iron-text uppercase text-sm tracking-wider">
+          Invite a Client
+        </h2>
+      </div>
+      <div className="px-4 py-4">
+        <p className="font-mono text-[12px] text-iron-muted leading-relaxed mb-4">
+          Enter your client's email. They'll receive a branded invite with a magic link — no password needed.
+        </p>
+        <form onSubmit={handleInvite} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="font-display text-[10px] uppercase tracking-widest text-iron-muted">
+              Client email
+            </label>
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="client@example.com"
+              value={email}
+              onChange={e => { setEmail(e.target.value); if (status === 'error') reset() }}
+              className={[
+                'w-full h-[52px] bg-iron-bg border rounded-iron',
+                'font-mono text-base text-iron-text px-4',
+                'placeholder:text-iron-faint',
+                'focus:border-iron-accent focus:shadow-accent-ring',
+                status === 'error' ? 'border-iron-danger' : 'border-iron-border',
+              ].join(' ')}
+            />
+            {status === 'error' && (
+              <p className="font-mono text-[12px] text-iron-danger">{errMsg}</p>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={status === 'sending' || !email.trim()}
+            className="press w-full h-[52px] bg-iron-accent text-iron-bg font-display font-black text-sm uppercase tracking-[0.1em] rounded-iron border-0 glow-accent disabled:opacity-50"
+          >
+            {status === 'sending' ? 'Sending…' : 'Send Invite'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Coming soon card ──────────────────────────────────────────────────────────
+
+function ComingSoonCard({ icon, title, description }) {
+  return (
+    <div className="bg-iron-surface border border-iron-border rounded-iron p-5 flex items-start gap-4">
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-iron-accent/10 border border-iron-accent/20 flex items-center justify-center text-iron-accent">
+        {icon}
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="font-display font-black text-iron-text text-sm uppercase tracking-wider">
+          {title}
+        </span>
+        <span className="font-mono text-[12px] text-iron-muted leading-relaxed">
+          {description}
+        </span>
+        <span className="font-display text-[10px] uppercase tracking-widest text-iron-accent/60 mt-1">
+          Coming soon
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ─── Coach Dashboard ───────────────────────────────────────────────────────────
 
 export default function CoachDashboard() {
   const { profile } = useApp()
-
-  const name = profile?.displayName ? profile.displayName : 'Coach'
+  const name = profile?.displayName || 'Coach'
 
   return (
     <main className="flex flex-col flex-1 overflow-y-auto pb-24">
 
-      {/* Header */}
       <header className="px-4 pt-5 pb-4 border-b border-iron-border">
         <p className="font-display text-[11px] uppercase tracking-[0.2em] text-iron-muted mb-0.5">
           Coach Dashboard
@@ -89,22 +202,10 @@ export default function CoachDashboard() {
 
       <div className="flex flex-col gap-4 p-4">
 
-        {/* Status banner */}
-        <div className="bg-iron-accent/10 border border-iron-accent/30 rounded-iron px-4 py-3">
-          <p className="font-display font-bold text-iron-accent text-sm uppercase tracking-wider mb-1">
-            Coach features in development
-          </p>
-          <p className="font-mono text-[12px] text-iron-muted leading-relaxed">
-            The coach system is being built. Invite clients, assign programs, and track their progress — all coming in the next phase.
-          </p>
-        </div>
+        {/* Live: invite form */}
+        <InviteClient />
 
-        {/* Feature previews */}
-        <ComingSoonCard
-          icon={<IconMail />}
-          title="Invite Clients"
-          description="Send email invites to clients. They sign up and get linked to your account automatically."
-        />
+        {/* Stubs */}
         <ComingSoonCard
           icon={<IconUsers />}
           title="Client Roster"
