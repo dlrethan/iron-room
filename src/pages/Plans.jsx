@@ -30,15 +30,10 @@ function ProgramTimeline({ currentWeek }) {
   const scrollRef   = useRef()
   const activeRef   = useRef()
 
-  // Scroll active week into view on mount
+  // Scroll active week into center on mount
   useEffect(() => {
-    if (activeRef.current && scrollRef.current) {
-      const el     = activeRef.current
-      const parent = scrollRef.current
-      const elLeft = el.offsetLeft
-      const elW    = el.offsetWidth
-      const parentW = parent.offsetWidth
-      parent.scrollLeft = elLeft - parentW / 2 + elW / 2
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' })
     }
   }, [])
 
@@ -52,7 +47,7 @@ function ProgramTimeline({ currentWeek }) {
       </div>
 
       {/* Horizontal scroll */}
-      <div ref={scrollRef} className="overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
+      <div ref={scrollRef} className="overflow-x-auto w-full px-4 pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
         <div className="flex gap-1.5" style={{ width: 'max-content' }}>
           {Array.from({ length: TOTAL_WEEKS }, (_, i) => {
             const week    = i + 1
