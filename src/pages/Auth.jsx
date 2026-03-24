@@ -218,7 +218,7 @@ export default function Auth() {
     setLoading(true)
     clearErrors()
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}?reset=1`,
+      redirectTo: window.location.origin,
     })
     setLoading(false)
     if (err) {

@@ -9,6 +9,7 @@ import ProgressPage    from './pages/Progress'
 import PlansPage       from './pages/Plans'
 import SettingsPage    from './pages/Settings'
 import CoachDashboard  from './pages/CoachDashboard'
+import UpdatePassword  from './pages/UpdatePassword'
 
 // ─── Icons (20px — tighter for multi-tab nav) ──────────────────────────────────
 
@@ -394,7 +395,7 @@ function LoadingScreen() {
 // ─── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { authLoading, user, loading, profile } = useApp()
+  const { authLoading, user, loading, profile, passwordRecovery } = useApp()
 
   const isAdmin = profile?.isAdmin ?? false
   const realRole = profile?.role ?? 'athlete'
@@ -404,6 +405,7 @@ export default function App() {
 
   if (authLoading) return <LoadingScreen />
   if (!user)       return <Auth />
+  if (passwordRecovery) return <UpdatePassword />
   if (loading)     return <LoadingScreen />
   if (!profile?.onboarded) return <OnboardingPage />
 

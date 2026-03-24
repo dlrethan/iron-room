@@ -20,6 +20,7 @@ export function AppProvider({ children }) {
   const [authLoading, setAuthLoading] = useState(true)
 
   const [loading, setLoading]               = useState(true)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [profile, setProfile]               = useState(null)
   const [workoutPlans, setWorkoutPlans]     = useState([])
   const [mealPlans, setMealPlans]           = useState([])
@@ -36,7 +37,8 @@ export function AppProvider({ children }) {
       setAuthLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
       setUser(session?.user ?? null)
     })
 
@@ -200,6 +202,8 @@ export function AppProvider({ children }) {
     user,
     authLoading,
     loading,
+    passwordRecovery,
+    clearPasswordRecovery: () => setPasswordRecovery(false),
     profile,
     workoutPlans,
     mealPlans,
