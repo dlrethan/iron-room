@@ -95,8 +95,10 @@ function InviteClient({ onInvited }) {
     setStatus('sending')
     setErrMsg('')
 
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await supabase.functions.invoke('invite-client', {
       body: { clientEmail: trimmed },
+      headers: { Authorization: `Bearer ${session?.access_token}` },
     })
 
     if (res.error || res.data?.error) {
