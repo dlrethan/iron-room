@@ -191,7 +191,7 @@ export default function Auth() {
     const errs = {}
     if (!email.trim())              errs.email    = 'Required'
     if (password.length < 8)        errs.password = 'At least 8 characters'
-    if (confirm !== password)       errs.confirm  = 'Passwords don't match'
+    if (confirm !== password)       errs.confirm  = "Passwords don't match"
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     setLoading(true)

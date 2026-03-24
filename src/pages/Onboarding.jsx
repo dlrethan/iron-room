@@ -191,7 +191,7 @@ export default function Onboarding() {
     e.preventDefault()
     const errs = {}
     if (password.length < 8) errs.password = 'At least 8 characters'
-    if (confirm !== password) errs.confirm  = 'Passwords don't match'
+    if (confirm !== password) errs.confirm  = "Passwords don't match"
     if (Object.keys(errs).length) { setErrors(errs); return }
     setErrors({})
     finalize(name.trim(), role, password)
