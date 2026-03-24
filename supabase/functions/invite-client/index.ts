@@ -150,7 +150,7 @@ serve(async (req) => {
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email: clientEmail.trim(),
-      options: { redirectTo: 'https://iron-room.vercel.app' },
+      options: { redirectTo: 'https://ironroom.app' },
     })
 
     if (linkError || !linkData?.properties?.action_link) {
@@ -165,11 +165,11 @@ serve(async (req) => {
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
+        'Authorization': `Bearer ${Deno.env.get('iron-room-app')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'IronRoom <onboarding@resend.dev>',
+        from: 'IronRoom <noreply@ironroom.app>',
         to: [clientEmail.trim()],
         subject: `${coachName} invited you to IronRoom`,
         html: buildEmail(coachName, magicLink),
