@@ -33,9 +33,15 @@
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
-    max-width: 430px;
-    margin-inline: auto;
-    border-inline: 1px solid #2A2A2A;
+  }
+
+  /* Mobile: center narrow column with border */
+  @media (max-width: 767px) {
+    #root {
+      max-width: 430px;
+      margin-inline: auto;
+      border-inline: 1px solid #2A2A2A;
+    }
   }
 
   h1, h2, h3, h4 {
