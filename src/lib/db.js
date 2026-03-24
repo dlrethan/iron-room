@@ -8,6 +8,7 @@ function rowToProfile(row) {
     calorieTarget:       row.calorie_target,
     proteinTarget:       row.protein_target,
     fatTarget:           row.fat_target,
+    carbsTarget:         row.carbs_target,
     programStartDate:    row.program_start_date,
     activeWorkoutPlanId: row.active_workout_plan_id,
     activeMealPlanId:    row.active_meal_plan_id,
@@ -21,6 +22,7 @@ function profileToRow(p) {
     calorie_target:          p.calorieTarget,
     protein_target:          p.proteinTarget,
     fat_target:              p.fatTarget,
+    carbs_target:            p.carbsTarget,
     program_start_date:      p.programStartDate,
     active_workout_plan_id:  p.activeWorkoutPlanId ?? null,
     active_meal_plan_id:     p.activeMealPlanId ?? null,
@@ -158,6 +160,11 @@ export async function upsertWeightEntry(entry) {
   const { error } = await supabase
     .from('weight_log')
     .upsert({ date: entry.date, weight_lbs: entry.weightLbs }, { onConflict: 'date' })
+  if (error) throw error
+}
+
+export async function deleteWeightEntry(date) {
+  const { error } = await supabase.from('weight_log').delete().eq('date', date)
   if (error) throw error
 }
 

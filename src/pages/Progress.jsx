@@ -212,7 +212,7 @@ function PRTable({ prs }) {
 
 // ─── Weight Log List ──────────────────────────────────────────────────────────
 
-function WeightLogList({ entries }) {
+function WeightLogList({ entries, onDelete }) {
   if (!entries.length) return null
 
   const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8)
@@ -227,15 +227,24 @@ function WeightLogList({ entries }) {
         <div
           key={e.date}
           className={[
-            'flex items-center justify-between px-4 py-3',
+            'flex items-center gap-3 px-4 py-3',
             i < sorted.length - 1 ? 'border-b border-iron-border' : '',
           ].join(' ')}
         >
-          <span className="font-mono text-[13px] text-iron-muted">{formatDate(e.date)}</span>
+          <span className="font-mono text-[13px] text-iron-muted flex-1">{formatDate(e.date)}</span>
           <span className="font-mono text-base font-bold text-iron-text">
             {e.weightLbs}
             <span className="text-iron-muted text-xs font-normal"> lb</span>
           </span>
+          <button
+            onClick={() => onDelete(e.date)}
+            className="press flex items-center justify-center w-[32px] h-[32px] rounded-iron border border-iron-border text-iron-faint hover:text-iron-danger hover:border-iron-danger/50"
+            aria-label={`Delete entry for ${formatDate(e.date)}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
       ))}
     </div>
@@ -382,7 +391,7 @@ function OneRMEstimator({ exerciseNames, prs }) {
 export default function Progress() {
   const dateStr = todayISO()
 
-  const { profile, weightLog, workoutLogs, addWeightEntry } = useApp()
+  const { profile, weightLog, workoutLogs, addWeightEntry, deleteWeightEntry } = useApp()
   const startWeight = profile.startingWeight ?? 280
 
   const [prs]                       = useState(() => computePRs(workoutLogs))
@@ -521,7 +530,7 @@ export default function Progress() {
             <h2 className="font-display font-bold text-iron-text uppercase text-lg mb-3">
               Recent Entries
             </h2>
-            <WeightLogList entries={weightLog} />
+            <WeightLogList entries={weightLog} onDelete={deleteWeightEntry} />
           </section>
         )}
 

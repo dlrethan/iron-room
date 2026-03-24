@@ -135,6 +135,11 @@ export function AppProvider({ children }) {
     await db.upsertWeightEntry(entry)
   }, [])
 
+  const deleteWeightEntry = useCallback(async (date) => {
+    setWeightLog(prev => prev.filter(e => e.date !== date))
+    await db.deleteWeightEntry(date)
+  }, [])
+
   // ── Reset all data ────────────────────────────────────────────────────────
 
   const resetAll = useCallback(async () => {
@@ -159,6 +164,7 @@ export function AppProvider({ children }) {
     saveWorkoutLog,
     saveMealLog,
     addWeightEntry,
+    deleteWeightEntry,
     resetAll,
   }
 

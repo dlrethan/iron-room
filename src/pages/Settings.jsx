@@ -144,6 +144,7 @@ export default function Settings() {
     calories:         String(profile.calorieTarget  ?? 2000),
     protein:          String(profile.proteinTarget  ?? 180),
     fat:              String(profile.fatTarget       ?? 55),
+    carbs:            String(profile.carbsTarget     ?? 200),
     currentWeight:    '',
   }))
 
@@ -159,16 +160,18 @@ export default function Settings() {
 
   const validate = () => {
     const errs = {}
-    const cal = Number(form.calories)
-    const pro = Number(form.protein)
-    const fat = Number(form.fat)
-    const wt  = form.currentWeight ? Number(form.currentWeight) : null
+    const cal   = Number(form.calories)
+    const pro   = Number(form.protein)
+    const fat   = Number(form.fat)
+    const carbs = Number(form.carbs)
+    const wt    = form.currentWeight ? Number(form.currentWeight) : null
 
     if (!form.programStartDate) errs.programStartDate = 'Required'
-    if (!form.calories || isNaN(cal) || cal < 500 || cal > 10000) errs.calories = '500–10,000'
-    if (!form.protein  || isNaN(pro) || pro < 0   || pro > 1000)  errs.protein  = '0–1,000g'
-    if (!form.fat      || isNaN(fat) || fat < 0   || fat > 500)   errs.fat      = '0–500g'
-    if (wt !== null && (isNaN(wt) || wt < 50 || wt > 700))        errs.currentWeight = '50–700 lbs'
+    if (!form.calories || isNaN(cal)   || cal   < 500 || cal   > 10000) errs.calories = '500–10,000'
+    if (!form.protein  || isNaN(pro)   || pro   < 0   || pro   > 1000)  errs.protein  = '0–1,000g'
+    if (!form.fat      || isNaN(fat)   || fat   < 0   || fat   > 500)   errs.fat      = '0–500g'
+    if (!form.carbs    || isNaN(carbs) || carbs < 0   || carbs > 1500)  errs.carbs    = '0–1,500g'
+    if (wt !== null && (isNaN(wt) || wt < 50 || wt > 700))              errs.currentWeight = '50–700 lbs'
 
     return errs
   }
@@ -178,9 +181,10 @@ export default function Settings() {
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     await saveProfile({
-      calorieTarget:   Number(form.calories),
-      proteinTarget:   Number(form.protein),
-      fatTarget:       Number(form.fat),
+      calorieTarget:    Number(form.calories),
+      proteinTarget:    Number(form.protein),
+      fatTarget:        Number(form.fat),
+      carbsTarget:      Number(form.carbs),
       programStartDate: form.programStartDate,
     })
 
@@ -270,8 +274,8 @@ export default function Settings() {
               {errors.calories && <span className="font-mono text-[11px] text-iron-danger">{errors.calories}</span>}
             </div>
 
-            {/* Protein + Fat side by side */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Protein + Fat + Carbs */}
+            <div className="grid grid-cols-3 gap-3">
               <div className="flex flex-col gap-1.5">
                 <FieldLabel>Protein</FieldLabel>
                 <div className="relative">
@@ -303,6 +307,22 @@ export default function Settings() {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 font-display text-[10px] uppercase tracking-wider text-iron-faint pointer-events-none">g</span>
                 </div>
                 {errors.fat && <span className="font-mono text-[11px] text-iron-danger">{errors.fat}</span>}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <FieldLabel>Carbs</FieldLabel>
+                <div className="relative">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={form.carbs}
+                    onChange={e => set('carbs')(e.target.value)}
+                    placeholder="200"
+                    className={inputClass('carbs')}
+                    style={{ paddingRight: '2.5rem' }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 font-display text-[10px] uppercase tracking-wider text-iron-faint pointer-events-none">g</span>
+                </div>
+                {errors.carbs && <span className="font-mono text-[11px] text-iron-danger">{errors.carbs}</span>}
               </div>
             </div>
 

@@ -556,6 +556,90 @@ function WorkoutHeader({ workout, progWeek, totalPlanned, totalCompleted, onRPEG
   )
 }
 
+// ─── Rest Timer Bar ───────────────────────────────────────────────────────────
+
+function RestTimerBar({ remaining, total, onDismiss }) {
+  const pct   = total > 0 ? remaining / total : 0
+  const mins  = Math.floor(remaining / 60)
+  const secs  = remaining % 60
+  const label = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`
+  const done  = remaining === 0
+
+  return (
+    <div className="fixed bottom-[56px] left-1/2 -translate-x-1/2 w-full max-w-[430px] z-40 px-3 pb-2">
+      <div className={[
+        'rounded-iron border overflow-hidden',
+        done ? 'bg-iron-success/10 border-iron-success/50' : 'bg-iron-surface border-iron-border',
+      ].join(' ')}>
+        {/* Countdown progress bar */}
+        <div className="h-[3px] bg-iron-border2">
+          <div
+            className={['h-full rounded-full', done ? 'bg-iron-success' : 'bg-iron-accent'].join(' ')}
+            style={{ width: `${pct * 100}%`, transition: 'width 1s linear' }}
+          />
+        </div>
+
+        <div className="flex items-center gap-3 px-4 py-3">
+          <span className="font-display text-[10px] uppercase tracking-widest text-iron-muted flex-shrink-0">
+            Rest
+          </span>
+          <span
+            className={['font-mono font-bold flex-1 leading-none', done ? 'text-iron-success' : 'text-iron-accent'].join(' ')}
+            style={{ fontSize: 'clamp(1.4rem, 6vw, 1.8rem)' }}
+          >
+            {done ? 'Go!' : label}
+          </span>
+          <button
+            onClick={onDismiss}
+            className="press flex-shrink-0 flex items-center justify-center w-[36px] h-[36px] rounded-iron border border-iron-border2 text-iron-muted"
+            aria-label="Dismiss rest timer"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Program Not Started View ─────────────────────────────────────────────────
+
+function ProgramNotStartedView({ programStartDate, onNavigate }) {
+  const dateStr = new Date(programStartDate + 'T00:00:00')
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+  return (
+    <main className="flex flex-col flex-1 pb-24">
+      <header className="px-4 pt-5 pb-4 border-b border-iron-border">
+        <h1 className="font-display font-black text-iron-text leading-none uppercase" style={{ fontSize: 'clamp(2rem, 9vw, 3rem)' }}>
+          Not Started
+        </h1>
+        <p className="font-display text-iron-muted text-sm uppercase tracking-widest mt-1">
+          Program begins {dateStr}
+        </p>
+      </header>
+      <div className="flex flex-col gap-4 p-4">
+        <div className="bg-iron-surface border border-iron-border rounded-iron p-4">
+          <p className="font-mono text-[13px] text-iron-muted leading-relaxed">
+            Your program starts on {dateStr}. Come back then to begin training.
+          </p>
+          <p className="font-mono text-[12px] text-iron-faint mt-2">
+            You can update your start date in Settings.
+          </p>
+        </div>
+        <button
+          onClick={() => onNavigate('settings')}
+          className="press w-full h-[56px] bg-iron-surface border border-iron-border rounded-iron font-display font-bold uppercase tracking-wider text-iron-muted"
+        >
+          Go to Settings
+        </button>
+      </div>
+    </main>
+  )
+}
+
 // ─── Rest Day View ────────────────────────────────────────────────────────────
 
 function RestDayView({ onNavigate }) {
@@ -656,6 +740,20 @@ export default function Workout({ onNavigate }) {
   const [showRPEGuide, setShowRPEGuide]   = useState(false)
   const [backdownSheet, setBackdownSheet] = useState(null) // { exerciseName, topWeight }
   const [isFinished, setIsFinished] = useState(() => existingLog?.completedAt != null)
+  const [restTimer, setRestTimer] = useState(null) // { remaining, total }
+
+  // Countdown tick
+  useEffect(() => {
+    if (!restTimer) return
+    if (restTimer.remaining <= 0) {
+      const t = setTimeout(() => setRestTimer(null), 1500)
+      return () => clearTimeout(t)
+    }
+    const t = setTimeout(() => {
+      setRestTimer(prev => prev ? { ...prev, remaining: prev.remaining - 1 } : null)
+    }, 1000)
+    return () => clearTimeout(t)
+  }, [restTimer])
 
   // ── Derived counts ──────────────────────────────────────────────────────────
 
@@ -692,7 +790,7 @@ export default function Workout({ onNavigate }) {
     })
   }, [])
 
-  const completeSet = useCallback((exerciseName, setIdx) => {
+  const completeSet = useCallback((exerciseName, setIdx, restSeconds) => {
     setExerciseLogs(prev => {
       const exLog = prev[exerciseName]
       const sets  = [...exLog.sets]
@@ -701,6 +799,9 @@ export default function Workout({ onNavigate }) {
       persistLog(next)
       return next
     })
+    if (restSeconds > 0) {
+      setRestTimer({ remaining: restSeconds, total: restSeconds })
+    }
   }, [persistLog])
 
   const addSet = useCallback((exerciseName) => {
@@ -743,9 +844,12 @@ export default function Workout({ onNavigate }) {
     setExpandedIdx(null)
   }, [exerciseLogs, persistLog])
 
-  // ── Rest day / no plan ──────────────────────────────────────────────────────
+  // ── Rest day / no plan / program not started ────────────────────────────────
 
   if (!workout) {
+    if (!progDay) {
+      return <ProgramNotStartedView programStartDate={profile.programStartDate} onNavigate={onNavigate} />
+    }
     return <RestDayView onNavigate={onNavigate} />
   }
 
@@ -784,7 +888,7 @@ export default function Workout({ onNavigate }) {
               isExpanded={expandedIdx === idx}
               onToggle={() => setExpandedIdx(prev => prev === idx ? null : idx)}
               onUpdateSet={(setIdx, field, value) => updateSet(ex.name, setIdx, field, value)}
-              onCompleteSet={setIdx => completeSet(ex.name, setIdx)}
+              onCompleteSet={setIdx => completeSet(ex.name, setIdx, ex.restSeconds)}
               onAddSet={() => addSet(ex.name)}
               onUpdateNotes={notes => updateNotes(ex.name, notes)}
               onOpenBackdown={(tw) => setBackdownSheet({ exerciseName: ex.name, topWeight: tw })}
@@ -814,6 +918,15 @@ export default function Workout({ onNavigate }) {
           topWeight={backdownSheet.topWeight}
           onUseWeight={(weight) => applyBackdownWeight(backdownSheet.exerciseName, weight)}
           onClose={() => setBackdownSheet(null)}
+        />
+      )}
+
+      {/* Rest timer */}
+      {restTimer && !isFinished && (
+        <RestTimerBar
+          remaining={restTimer.remaining}
+          total={restTimer.total}
+          onDismiss={() => setRestTimer(null)}
         />
       )}
 

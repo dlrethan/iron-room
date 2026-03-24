@@ -222,6 +222,7 @@ export const defaultUserProfile = {
   calorieTarget: 2000,
   proteinTarget: 180,
   fatTarget: 55,
+  carbsTarget: 200,
 };
 
 export const DEFAULT_PROGRAM_START_DATE = "2026-03-21";

@@ -367,33 +367,35 @@ export default function Dashboard({ onNavigate }) {
             Today's Macros
           </h3>
           <div className="bg-iron-surface border border-iron-border rounded-iron p-4">
-            <div className="flex items-start justify-around gap-2">
+            <div className="flex items-start justify-around gap-1">
               <MacroRing
                 label="Protein"
                 logged={loggedMacros.protein}
                 target={profile.proteinTarget}
                 unit="g"
               />
-              <div className="w-px self-stretch bg-iron-border mx-2" />
+              <div className="w-px self-stretch bg-iron-border" />
               <MacroRing
                 label="Calories"
                 logged={loggedMacros.calories}
                 target={profile.calorieTarget}
                 unit=""
               />
+              <div className="w-px self-stretch bg-iron-border" />
+              <MacroRing
+                label="Carbs"
+                logged={loggedMacros.carbs}
+                target={profile.carbsTarget ?? 200}
+                unit="g"
+              />
             </div>
 
-            {/* Secondary macros bar */}
-            {loggedMacros.calories > 0 && (
-              <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-iron-border">
-                <span className="font-mono text-[11px] text-iron-muted">
-                  <span className="text-iron-text">{loggedMacros.fat}g</span> fat
-                </span>
-                <span className="font-mono text-[11px] text-iron-muted">
-                  <span className="text-iron-text">{loggedMacros.carbs}g</span> carbs
-                </span>
-              </div>
-            )}
+            {/* Fat secondary row */}
+            <div className="flex justify-center mt-4 pt-4 border-t border-iron-border">
+              <span className="font-mono text-[11px] text-iron-muted">
+                <span className="text-iron-text">{loggedMacros.fat}g</span> fat
+              </span>
+            </div>
           </div>
         </section>
 
