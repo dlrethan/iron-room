@@ -712,7 +712,7 @@ export default function Workout({ onNavigate }) {
   const today = new Date()
   const dateStr = todayISO()
 
-  const { profile, workoutPlans, workoutLogs, saveWorkoutLog } = useApp()
+  const { profile, workoutPlans, workoutLogs, saveWorkoutLog, weightOverrides } = useApp()
 
   const workout  = getTodaysWorkout(today, workoutPlans, profile.activeWorkoutPlanId, profile.programStartDate)
   const progDay  = getProgramDay(today, profile.programStartDate)
@@ -737,8 +737,13 @@ export default function Workout({ onNavigate }) {
           notes: found?.notes ?? '',
         }
       } else {
+        const overrideWeight = weightOverrides?.[ex.name]
         result[ex.name] = {
-          sets:  Array.from({ length: ex.sets }, emptySet),
+          sets: Array.from({ length: ex.sets }, () =>
+            overrideWeight != null
+              ? { weight: String(overrideWeight), reps: '', rpe: null, completed: false }
+              : emptySet()
+          ),
           notes: '',
         }
       }

@@ -19,13 +19,14 @@ export function AppProvider({ children }) {
   const [user, setUser]               = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
 
-  const [loading, setLoading]           = useState(true)
-  const [profile, setProfile]           = useState(null)
-  const [workoutPlans, setWorkoutPlans] = useState([])
-  const [mealPlans, setMealPlans]       = useState([])
-  const [workoutLogs, setWorkoutLogs]   = useState([])
-  const [mealLogs, setMealLogs]         = useState([])
-  const [weightLog, setWeightLog]       = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [profile, setProfile]               = useState(null)
+  const [workoutPlans, setWorkoutPlans]     = useState([])
+  const [mealPlans, setMealPlans]           = useState([])
+  const [workoutLogs, setWorkoutLogs]       = useState([])
+  const [mealLogs, setMealLogs]             = useState([])
+  const [weightLog, setWeightLog]           = useState([])
+  const [weightOverrides, setWeightOverrides] = useState({}) // exerciseName → weightLbs
 
   // ── Auth state ────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export function AppProvider({ children }) {
       setWorkoutLogs([])
       setMealLogs([])
       setWeightLog([])
+      setWeightOverrides({})
       setLoading(false)
       return
     }
@@ -82,12 +84,16 @@ export function AppProvider({ children }) {
         await db.upsertProfile(prof)
       }
 
-      const [wPlans, mPlans, wLogs, mLogs, wLog] = await Promise.all([
+        // Auto-link client to any coach who invited them
+      await db.autoLinkClient()
+
+      const [wPlans, mPlans, wLogs, mLogs, wLog, overrides] = await Promise.all([
         db.fetchWorkoutPlans(),
         db.fetchMealPlans(),
         db.fetchWorkoutLogs(),
         db.fetchMealLogs(),
         db.fetchWeightLog(),
+        db.fetchMyWeightOverrides(),
       ])
 
       setProfile(prof)
@@ -96,6 +102,7 @@ export function AppProvider({ children }) {
       setWorkoutLogs(wLogs)
       setMealLogs(mLogs)
       setWeightLog(wLog)
+      setWeightOverrides(overrides)
       setLoading(false)
     }
 
@@ -199,6 +206,7 @@ export function AppProvider({ children }) {
     workoutLogs,
     mealLogs,
     weightLog,
+    weightOverrides,
     saveProfile,
     saveWorkoutPlan,
     saveMealPlan,

@@ -190,12 +190,12 @@ function ActivePage({ tab, onNavigate }) {
   }
 }
 
-// ─── Bottom nav ────────────────────────────────────────────────────────────────
+// ─── Bottom nav (mobile only) ─────────────────────────────────────────────────
 
 function BottomNav({ tabs, active, onSelect }) {
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-iron-surface border-t border-iron-border z-50 pb-safe"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-iron-surface border-t border-iron-border z-50 pb-safe md:hidden"
       role="navigation"
       aria-label="Main navigation"
     >
@@ -218,11 +218,9 @@ function BottomNav({ tabs, active, onSelect }) {
               {isActive && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-iron-accent rounded-b glow-accent" />
               )}
-
               <span className="flex items-center justify-center w-5 h-5">
                 <Icon active={isActive} />
               </span>
-
               <span className={[
                 'font-display text-[9px] uppercase tracking-[0.08em] leading-none',
                 isActive ? 'font-bold' : 'font-normal',
@@ -234,6 +232,97 @@ function BottomNav({ tabs, active, onSelect }) {
         })}
       </div>
     </nav>
+  )
+}
+
+// ─── Sidebar nav (desktop only) ───────────────────────────────────────────────
+
+function SideNav({ tabs, active, onSelect, profile, isAdmin, previewRole, onPreviewRole }) {
+  return (
+    <aside
+      className="hidden md:flex flex-col flex-shrink-0 bg-iron-surface border-r border-iron-border"
+      style={{ width: '220px' }}
+      role="navigation"
+      aria-label="Main navigation"
+    >
+      {/* Logo */}
+      <div className="px-5 py-5 border-b border-iron-border">
+        <div className="font-display font-black uppercase leading-none" style={{ fontSize: '1.5rem' }}>
+          <span style={{ color: '#F0F0F0' }}>Iron</span>
+          <span style={{ color: '#E8FF47' }}>Room</span>
+        </div>
+        {profile?.displayName && (
+          <p className="font-mono text-[11px] text-iron-muted mt-1 truncate">{profile.displayName}</p>
+        )}
+      </div>
+
+      {/* Nav items */}
+      <div className="flex flex-col py-3 flex-1">
+        {tabs.map(({ id, label, Icon }) => {
+          const isActive = active === id
+          return (
+            <button
+              key={id}
+              onClick={() => onSelect(id)}
+              aria-current={isActive ? 'page' : undefined}
+              className={[
+                'relative flex items-center gap-3 px-4 py-3 mx-2 rounded-iron',
+                'bg-transparent border-0 press text-left',
+                isActive ? 'text-iron-accent bg-iron-accent/8' : 'text-iron-muted hover:text-iron-text',
+              ].join(' ')}
+            >
+              {isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-iron-accent rounded-r glow-accent" />
+              )}
+              <span className="flex items-center justify-center w-5 h-5 flex-shrink-0">
+                <Icon active={isActive} />
+              </span>
+              <span className={[
+                'font-display uppercase tracking-[0.08em] text-[11px]',
+                isActive ? 'font-bold' : 'font-normal',
+              ].join(' ')}>
+                {label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Admin role switcher */}
+      {isAdmin && (
+        <div
+          className="px-4 py-3 border-t"
+          style={{ borderColor: 'rgba(245,158,11,0.25)', background: '#120F00' }}
+        >
+          <p className="font-display uppercase tracking-widest mb-2" style={{ fontSize: '9px', color: '#F59E0B' }}>
+            ⚡ Admin View
+          </p>
+          <div className="flex gap-1 flex-wrap">
+            {['athlete', 'coach', 'both'].map(r => (
+              <button
+                key={r}
+                onClick={() => onPreviewRole(r)}
+                className="press border rounded"
+                style={{
+                  fontSize: '9px',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  padding: '2px 8px',
+                  lineHeight: 1.4,
+                  background:  previewRole === r ? '#F59E0B' : 'transparent',
+                  color:       previewRole === r ? '#0D0D0D' : '#F59E0B',
+                  borderColor: previewRole === r ? '#F59E0B' : 'rgba(245,158,11,0.35)',
+                }}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </aside>
   )
 }
 
@@ -331,10 +420,32 @@ export default function App() {
   }
 
   return (
-    <>
-      {isAdmin && <AdminBar previewRole={previewRole} onSet={handlePreviewRole} />}
-      <ActivePage tab={validTab} onNavigate={setActiveTab} />
+    <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden">
+      {/* Mobile admin bar (top) */}
+      {isAdmin && (
+        <div className="md:hidden">
+          <AdminBar previewRole={previewRole} onSet={handlePreviewRole} />
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <SideNav
+        tabs={tabs}
+        active={validTab}
+        onSelect={setActiveTab}
+        profile={profile}
+        isAdmin={isAdmin}
+        previewRole={previewRole}
+        onPreviewRole={handlePreviewRole}
+      />
+
+      {/* Content area */}
+      <div className="flex-1 flex flex-col min-w-0 md:overflow-hidden">
+        <ActivePage tab={validTab} onNavigate={setActiveTab} />
+      </div>
+
+      {/* Mobile bottom nav */}
       <BottomNav tabs={tabs} active={validTab} onSelect={setActiveTab} />
-    </>
+    </div>
   )
 }

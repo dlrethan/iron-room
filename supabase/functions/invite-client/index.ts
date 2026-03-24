@@ -182,6 +182,19 @@ serve(async (req) => {
       return json({ error: 'Failed to send email' }, 500)
     }
 
+    // ── 7. Upsert coach_clients record ────────────────────────────────────
+    await admin
+      .from('coach_clients')
+      .upsert(
+        {
+          coach_id:     user.id,
+          client_email: clientEmail.trim(),
+          status:       'pending',
+          invited_at:   new Date().toISOString(),
+        },
+        { onConflict: 'coach_id,client_email', ignoreDuplicates: false }
+      )
+
     return json({ success: true })
 
   } catch (err) {

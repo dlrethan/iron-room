@@ -198,6 +198,84 @@ export async function deleteWeightEntry(date) {
   if (error) throw error
 }
 
+// ─── Coach: fetch client roster with profiles (SECURITY DEFINER RPC) ─────────
+
+export async function fetchCoachClients() {
+  const { data, error } = await supabase.rpc('get_coach_clients_with_profiles')
+  if (error) throw error
+  return (data ?? []).map(row => ({
+    id:          row.id,
+    clientId:    row.client_id,
+    clientEmail: row.client_email,
+    status:      row.status,
+    invitedAt:   row.invited_at,
+    linkedAt:    row.linked_at,
+    displayName: row.display_name ?? null,
+    role:        row.role ?? null,
+  }))
+}
+
+// ─── Coach: assign plans to a client ─────────────────────────────────────────
+
+export async function assignPlanToClient({ clientId, workoutPlanId, mealPlanId }) {
+  const { error } = await supabase.rpc('assign_plan_to_client', {
+    p_client_id:       clientId,
+    p_workout_plan_id: workoutPlanId ?? null,
+    p_meal_plan_id:    mealPlanId ?? null,
+  })
+  if (error) throw error
+}
+
+// ─── Coach: weight overrides ──────────────────────────────────────────────────
+
+export async function fetchWeightOverridesForClient(clientId) {
+  const { data, error } = await supabase
+    .from('exercise_weight_overrides')
+    .select('exercise_name, weight_lbs')
+    .eq('client_id', clientId)
+  if (error) throw error
+  return (data ?? []).map(r => ({ exerciseName: r.exercise_name, weightLbs: Number(r.weight_lbs) }))
+}
+
+export async function upsertWeightOverride({ clientId, exerciseName, weightLbs }) {
+  const { error } = await supabase.rpc('upsert_weight_override', {
+    p_client_id:     clientId,
+    p_exercise_name: exerciseName,
+    p_weight_lbs:    weightLbs,
+  })
+  if (error) throw error
+}
+
+export async function deleteWeightOverride({ clientId, exerciseName }) {
+  const { error } = await supabase.rpc('delete_weight_override', {
+    p_client_id:     clientId,
+    p_exercise_name: exerciseName,
+  })
+  if (error) throw error
+}
+
+// ─── Client: fetch own weight overrides (pre-fill top sets) ──────────────────
+
+export async function fetchMyWeightOverrides() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return {}
+  const { data, error } = await supabase
+    .from('exercise_weight_overrides')
+    .select('exercise_name, weight_lbs')
+    .eq('client_id', session.user.id)
+  if (error) return {}
+  const map = {}
+  for (const r of data ?? []) map[r.exercise_name] = Number(r.weight_lbs)
+  return map
+}
+
+// ─── Client: auto-link to coach on login ─────────────────────────────────────
+
+export async function autoLinkClient() {
+  const { error } = await supabase.rpc('auto_link_client')
+  if (error) console.warn('auto_link_client:', error.message)
+}
+
 // ─── Reset (danger zone) ──────────────────────────────────────────────────────
 
 export async function deleteAllUserData() {
