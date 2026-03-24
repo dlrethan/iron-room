@@ -1,63 +1,54 @@
-# Iron Room
+# IronRoom
 
-A mobile-first workout and nutrition tracking app built for serious lifters. Tracks workouts, meals, and body weight across a structured 15-week training program with full Supabase persistence.
+Track. Progress. Dominate.
+
+A mobile-first PWA for workout tracking, nutrition logging, and coach-client program management.
+
+**Live:** [ironroom.app](https://ironroom.app)
+
+---
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19 + Vite 8 + Tailwind CSS v4 |
+| Styling | Tailwind CSS v4 |
+| Backend | Supabase (Postgres + Auth + Edge Functions) |
+| Email | Resend (`noreply@ironroom.app`) |
+| Hosting | Vercel + Cloudflare |
+| PWA | vite-plugin-pwa + Workbox |
 
 ---
 
 ## Features
 
-### Workout
-- Log sets, reps, and RPE for every exercise
-- Auto-fills backdown weight (87.5%) on remaining sets after the top set is completed — skips any sets that already have a coach-preset weight
-- Edit any completed set mid-workout to fix accidental submissions
-- Rest timer fires automatically after each set using the exercise's programmed rest interval
-- Backdown calculator (85% / 87.5% / 90% or manual override) fills the next incomplete set
-- Previous session reference shown per exercise
-- Per-exercise notes
-- Program-day-based scheduling — Day 1 = Push, Day 2 = Pull, Day 3 = Legs, Day 4 = Upper, Days 5–7 = Rest, regardless of calendar day
+### Athlete
+- **Workout Logger** — sets / reps / RPE, rest timer, backdown weight calculator, auto-backdown fill, edit completed sets
+- **Meal Tracking** — toggle meals eaten, custom entries, grocery list view, prep view, macro targets (calories, protein, fat, carbs)
+- **Progress** — weight chart, PR tracking, 1RM estimator (Epley), delete entries
+- **Plans** — 15-week program timeline, accordion day viewer, JSON import
+- **Dashboard** — today's workout card, macro rings, current program day
+- **Program Scheduling** — day-based (not weekday): Day 1 Push, Day 2 Pull, Day 3 Legs, Day 4 Upper, Days 5–7 Rest
 
-### Meals
-- Daily meal logging with toggle-to-eat per meal
-- Full macro tracking: protein, calories, fat, carbs
-- Custom macro entries (add any food not in the plan)
-- Weekly grocery list auto-generated from the active meal plan, categorized by Proteins / Carbs / Vegetables / Pantry
-- Meal prep view
+### Coach
+- **Client Roster** — invite clients by email (branded Resend email with magic link), pending/active status
+- **Plan Assignment** — assign workout + meal plans to clients; clients see coach's plan via RLS
+- **Weight Overrides** — set per-exercise starting weights for clients; pre-fills all sets in client's workout logger
+- **Desktop Layout** — sidebar nav on md+ screens, two-column client roster + detail panel
 
-### Progress
-- Weekly weigh-in with SVG weight chart (start weight reference line)
-- Delete individual weight entries
-- Strength PRs auto-computed from all workout logs (best weight × reps per exercise)
-- 1RM estimator using the Epley formula, with PR comparison
+### Auth
+- Email + password sign up / sign in / forgot password / reset password
+- Google OAuth
+- Coach invite via magic link → password setup on first login
+- Profile onboarding (name + role picker) on first login
+- Role-based UI: Athlete (6 tabs), Coach (3 tabs), Both (7 tabs)
+- Admin mode switcher for previewing all role UIs
 
-### Plans
-- 15-week scrollable program timeline — highlights current week, deload weeks
-- Active workout plan viewer: accordion by month → RPE schedule → training days → exercises
-- Active meal plan viewer: accordion by day with full macro breakdown
-- JSON plan import (validate → preview → confirm) for plans generated in Claude or externally
-- Supports both workout and meal plan formats
-
-### Dashboard
-- Today's date, current program day (out of 90)
-- Workout card with exercise count and "Start Workout" CTA, or Rest Day card with next session
-- Macro rings for Protein, Calories, and Carbs — tracked against daily targets, with fat shown below
-- Today's meals with eat-toggle
-
-### Settings
-- Program start date
-- Daily targets: calories, protein, fat, carbs
-- Current weight log entry
-- Full data reset with confirmation
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | React 19 + Vite |
-| Styling | Tailwind CSS v4 |
-| Database | Supabase (Postgres) |
-| Deployment | Vercel |
+### PWA
+- Installable on iOS and Android
+- Offline asset caching via Workbox
+- Google Fonts cached via service worker
 
 ---
 
@@ -66,39 +57,67 @@ A mobile-first workout and nutrition tracking app built for serious lifters. Tra
 ```
 src/
 ├── context/
-│   └── AppContext.jsx     # Global state — loads Supabase data on mount, seeds on first launch
+│   └── AppContext.jsx       # Global state — loads Supabase data on mount, seeds on first launch
 ├── lib/
-│   ├── supabase.js        # Supabase client singleton
-│   └── db.js              # Async CRUD operations (normalizes DB ↔ JS shapes)
+│   ├── supabase.js          # Supabase client singleton
+│   └── db.js               # Async CRUD + coach RPCs (normalizes DB ↔ JS shapes)
 ├── utils/
-│   └── planUtils.js       # Pure computation — getProgramDay, getTodaysWorkout, getNextWorkoutDay, etc.
+│   └── planUtils.js        # Pure computation — getProgramDay, getTodaysWorkout, etc.
 ├── data/
-│   └── seedData.js        # Default 15-week workout block + 7-day meal rotation
+│   └── seedData.js         # Default 15-week workout block + 7-day meal rotation
 └── pages/
+    ├── Auth.jsx
+    ├── Onboarding.jsx
+    ├── UpdatePassword.jsx
     ├── Dashboard.jsx
     ├── Workout.jsx
     ├── Meals.jsx
     ├── Progress.jsx
     ├── Plans.jsx
+    ├── CoachDashboard.jsx
     └── Settings.jsx
+
+supabase/
+└── functions/
+    └── invite-client/      # Generates magic link, sends Resend email, upserts coach_clients
+
+email-templates/
+├── confirm-signup.html     # → Supabase Auth → Confirm signup template
+├── reset-password.html     # → Supabase Auth → Reset password template
+└── magic-link.html         # → Supabase Auth → Magic link template
 ```
 
-All writes are optimistic — state updates immediately in the UI, Supabase write fires in the background. The app shows a loading screen on first mount while data is fetched.
+All writes are optimistic — state updates immediately in the UI, Supabase write fires in the background.
 
 ---
 
-## Database Schema
+## Database
 
-| Table | Description |
+**Supabase Project ID:** `uztmqmblzmqpwrwqqnml`
+
+### Tables
+
+| Table | Notes |
 |---|---|
-| `user_profile` | Single row — targets (calories, protein, fat, carbs), program start date, active plan IDs |
-| `workout_plans` | Full workout plans stored as JSONB |
-| `meal_plans` | Full meal plans stored as JSONB |
-| `workout_logs` | One row per session (date + day type + exercises + sets) |
-| `meal_logs` | One row per day (meals eaten + custom entries) |
-| `weight_log` | One row per weigh-in date |
+| `user_profile` | PK: user_id. display_name, role, onboarded, is_admin, macro targets, active plan IDs |
+| `workout_plans` | JSONB. RLS: owner OR assigned client |
+| `meal_plans` | JSONB. RLS: owner OR assigned client |
+| `workout_logs` | Unique: user_id + date + day_name |
+| `meal_logs` | Unique: user_id + date |
+| `weight_log` | Unique: user_id + date |
+| `coach_clients` | coach_id, client_email, client_id (null until accepted), status: pending/active |
+| `plan_assignments` | coach_id → client_id → workout_plan_id + meal_plan_id |
+| `exercise_weight_overrides` | coach_id → client_id → exercise_name → weight_lbs |
 
-Row Level Security is enabled on all tables with permissive policies. `user_id` columns are in place on every table, ready for auth to be wired in.
+### SECURITY DEFINER RPCs
+
+| Function | Purpose |
+|---|---|
+| `auto_link_client()` | Links pending coach_clients rows when client first logs in |
+| `get_coach_clients_with_profiles()` | Coach reads client names/roles across RLS boundary |
+| `assign_plan_to_client(client_id, workout_plan_id, meal_plan_id)` | Updates plan_assignments + client's user_profile |
+| `upsert_weight_override(client_id, exercise_name, weight_lbs)` | Coach sets per-exercise weight for a client |
+| `delete_weight_override(client_id, exercise_name)` | Removes a weight override |
 
 ---
 
@@ -123,9 +142,7 @@ Row Level Security is enabled on all tables with permissive policies. `user_id` 
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-4. Run the database migrations in your Supabase SQL editor (or via Supabase CLI)
-
-5. Start the dev server
+4. Start the dev server
    ```bash
    npm run dev
    ```
@@ -144,52 +161,25 @@ VITE_SUPABASE_ANON_KEY
 
 ---
 
-## Plan Import
-
-New workout or meal plans can be generated externally (e.g. via Claude) and imported as JSON through the Plans tab. The JSON must include `planType` (`"workout"` or `"meal"`), `planName`, and the appropriate `weeks` or `days` structure.
-
----
-
 ## Roadmap
 
-### Phase 1 — Authentication ⚠️ Blocking everything else
-- [ ] Supabase Auth (magic link + Google OAuth)
-- [ ] Role selection on signup (Coach / Client)
-- [ ] User profile creation on first login, `user_id` applied to all owned data
-- [ ] RLS policies updated from `allow all` to `auth.uid() = user_id`
-- [ ] Auth screens (sign in, sign up) and sign out in Settings
+### Done
+- [x] Workout logger (sets, reps, RPE, rest timer, backdown calc)
+- [x] Meal tracking (toggle eaten, custom entries, grocery list, prep view)
+- [x] Progress tracking (weight chart, PRs, 1RM estimator)
+- [x] Plans viewer + JSON import
+- [x] Dashboard (workout card, macro rings, program day)
+- [x] Supabase Auth — email/password + Google OAuth + password reset
+- [x] Profile onboarding + role-based UI (Athlete / Coach / Both)
+- [x] Admin mode switcher
+- [x] PWA — installable, offline caching, iOS meta tags
+- [x] Coach dashboard + client invite (Resend branded email)
+- [x] Plan assignment (coach assigns workout + meal plans to clients)
+- [x] Weight overrides (coach sets per-exercise weights, pre-fills client's logger)
+- [x] Desktop layout — sidebar nav, two-column coach dashboard
 
-### Phase 2 — PWA / Installability
-- [ ] `manifest.json` with app name, icons, theme color
-- [ ] Service worker for offline support
-- [ ] "Add to Home Screen" prompt
-- [ ] Splash screen and status bar color on iOS/Android
-
-### Phase 3 — Coach-Client Relationships
-- [ ] `coach_clients` table (coach_id, client_id, status: pending/active)
-- [ ] Coach invites client by email via Supabase magic link
-- [ ] Coach dashboard: all clients with last workout and last weigh-in
-- [ ] RLS: coaches can read (not write) client logs
-
-### Phase 4 — Program Assignment
-- [ ] `plan_assignments` table (plan_id, plan_type, assigned_to, assigned_by)
-- [ ] Coach assigns workout plans to clients
-- [ ] `exercise_weight_overrides` table — coach sets recommended starting weights per client per exercise
-- [ ] Clients see coach weight targets pre-filled inside the workout logger (auto-backdown skips these)
-- [ ] Coach can update weight targets at any time
-
-### Phase 5 — Meal Plan Sharing
-- [ ] Coach can optionally attach a meal plan to a client assignment
-- [ ] Shared plans are read-only for the client
-- [ ] If no plan shared, client falls through to their own meal plan
-
-### Phase 6 — AI Meal Plan Generation
-- [ ] Client fills out a form (calories, protein, fat, food preferences/exclusions)
-- [ ] App calls Claude API via a Supabase Edge Function
-- [ ] Returns a ready-to-import meal plan JSON, dropped straight into the import flow
-
-### Phase 7 — Food Search & Logging (Nutritionix)
-- [ ] Integrate Nutritionix API (same food database used by major fitness apps)
-- [ ] Search any food by name or scan a barcode, get full macros back
-- [ ] Logged entries appear in the client's daily meal log
-- [ ] API key stored server-side via Supabase Edge Function
+### Up Next
+- [ ] **Meal Plan Sharing UI** — coach pushes meal plans to clients (DB already wired)
+- [ ] **Client Progress View** — coach sees client's weight history, PRs, and session logs
+- [ ] **AI Meal Plan Generation** — Claude API via Supabase Edge Function
+- [ ] **Food Search / Logging** — Nutritionix API integration
