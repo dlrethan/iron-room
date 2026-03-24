@@ -253,9 +253,7 @@ function WorkoutCard({ workout, progWeek, isLogged, onStart }) {
 
 // ─── Rest Day Card ────────────────────────────────────────────────────────────
 
-function RestDayCard({ today }) {
-  const next = getNextWorkoutDay(today)
-
+function RestDayCard({ nextWorkout }) {
   return (
     <div className="bg-iron-surface border border-iron-border rounded-iron p-4">
       <h2 className="font-display font-black text-iron-text leading-none mb-1" style={{ fontSize: 'clamp(2.2rem, 10vw, 3rem)' }}>
@@ -267,13 +265,13 @@ function RestDayCard({ today }) {
       <p className="font-mono text-[13px] text-iron-muted leading-relaxed">
         No training scheduled today. Eat your protein, hydrate, and let the muscle repair.
       </p>
-      {next && (
+      {nextWorkout && (
         <div className="mt-4 pt-4 border-t border-iron-border flex items-center gap-2">
           <span className="font-display text-[11px] uppercase tracking-widest text-iron-muted">
             Next session:
           </span>
           <span className="font-display text-[11px] uppercase tracking-widest text-iron-accent">
-            {next.dayName} · {next.workoutName} Day
+            {nextWorkout.workoutName} Day
           </span>
         </div>
       )}
@@ -293,6 +291,7 @@ export default function Dashboard({ onNavigate }) {
   const workout      = getTodaysWorkout(today, workoutPlans, profile.activeWorkoutPlanId, profile.programStartDate)
   const mealPlanDay  = getTodaysMeals(today, mealPlans, profile.activeMealPlanId)
   const existingLogs = getWorkoutLogForDate(workoutLogs, dateStr)
+  const nextWorkout  = workout ? null : getNextWorkoutDay(today, profile.programStartDate)
 
   const isWorkoutLogged = existingLogs.length > 0
 
@@ -363,7 +362,7 @@ export default function Dashboard({ onNavigate }) {
             onStart={() => onNavigate('workout')}
           />
         ) : (
-          <RestDayCard today={today} />
+          <RestDayCard nextWorkout={nextWorkout} />
         )}
 
         {/* ── Macro rings ──────────────────────────────────────────────────── */}

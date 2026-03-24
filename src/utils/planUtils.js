@@ -1,12 +1,8 @@
 // ─── Pure utility functions ───────────────────────────────────────────────────
 // These functions accept data directly instead of reading from storage.
 
-const DAY_TO_WORKOUT = {
-  Monday:    'Push',
-  Wednesday: 'Pull',
-  Friday:    'Legs',
-  Saturday:  'Upper',
-}
+// Days 1–4 of each 7-day program week are training days, 5–7 are rest.
+const TRAINING_DAY_NAMES = ['Push', 'Pull', 'Legs', 'Upper']
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -22,14 +18,6 @@ export function getProgramDay(today = new Date(), programStartDate) {
   const dayNumber  = Math.floor(diffMs / 86_400_000) + 1
   const weekNumber = Math.ceil(dayNumber / 7)
   return { day: dayNumber, week: weekNumber }
-}
-
-/**
- * Returns the workout day name ("Push", "Pull", etc.) for a given Date,
- * or null if it's a rest day.
- */
-export function getWorkoutDayName(date = new Date()) {
-  return DAY_TO_WORKOUT[DAY_NAMES[date.getDay()]] ?? null
 }
 
 /**
@@ -49,15 +37,18 @@ export function getActiveMealPlan(mealPlans, activeMealPlanId) {
 }
 
 /**
- * Returns today's workout exercises from the active plan,
- * or null if it's a rest day or no plan loaded.
+ * Returns today's workout from the active plan based on program day offset,
+ * or null if it's a rest day (days 5–7 of each 7-day cycle) or no plan loaded.
  */
 export function getTodaysWorkout(today = new Date(), workoutPlans, activeWorkoutPlanId, programStartDate) {
   const prog = getProgramDay(today, programStartDate)
   if (!prog) return null
 
-  const dayName = getWorkoutDayName(today)
-  if (!dayName) return null
+  // Within each 7-day cycle: days 1–4 train, days 5–7 rest
+  const dayInCycle = ((prog.day - 1) % 7) + 1
+  if (dayInCycle > 4) return null
+
+  const dayName = TRAINING_DAY_NAMES[dayInCycle - 1]
 
   const plan = getActiveWorkoutPlan(workoutPlans, activeWorkoutPlanId)
   if (!plan) return null
@@ -103,16 +94,18 @@ export function getMealLogForDate(mealLogs, dateStr) {
 }
 
 /**
- * Returns the next scheduled workout day after a given date.
- * Returns { dayName, workoutName } or null.
+ * Returns the next scheduled training day after a given date based on program
+ * day offset. Returns { workoutName } or null.
  */
-export function getNextWorkoutDay(today = new Date()) {
+export function getNextWorkoutDay(today = new Date(), programStartDate) {
   for (let i = 1; i <= 7; i++) {
     const next = new Date(today)
     next.setDate(today.getDate() + i)
-    const dayName = DAY_NAMES[next.getDay()]
-    if (DAY_TO_WORKOUT[dayName]) {
-      return { dayName, workoutName: DAY_TO_WORKOUT[dayName] }
+    const prog = getProgramDay(next, programStartDate)
+    if (!prog) continue
+    const dayInCycle = ((prog.day - 1) % 7) + 1
+    if (dayInCycle <= 4) {
+      return { workoutName: TRAINING_DAY_NAMES[dayInCycle - 1] }
     }
   }
   return null
