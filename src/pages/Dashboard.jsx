@@ -328,10 +328,10 @@ export default function Dashboard({ onNavigate }) {
       <header className="flex items-start justify-between px-4 pt-5 pb-4 border-b border-iron-border">
         <div>
           <h1 className="font-display font-black text-iron-text leading-none" style={{ fontSize: 'clamp(1.6rem, 7vw, 2.2rem)' }}>
-            {weekday}
+            {profile?.displayName ? `Hey, ${profile.displayName}` : weekday}
           </h1>
           <p className="font-display text-iron-muted text-sm uppercase tracking-wider mt-0.5">
-            {monthDay}
+            {profile?.displayName ? `${weekday} · ${monthDay}` : monthDay}
           </p>
         </div>
 

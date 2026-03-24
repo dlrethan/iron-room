@@ -386,12 +386,23 @@ export default function Settings() {
             <h2 className="font-display font-bold text-iron-text uppercase text-sm tracking-wider">Account</h2>
           </div>
           <div className="px-4 py-4 flex flex-col gap-3">
-            <p className="font-mono text-[12px] text-iron-muted">
-              Signed in as <span className="text-iron-text">{user?.email}</span>
-            </p>
+            {profile?.displayName && (
+              <div className="flex items-baseline justify-between">
+                <span className="font-display text-[10px] uppercase tracking-widest text-iron-muted">Name</span>
+                <span className="font-mono text-[13px] text-iron-text">{profile.displayName}</span>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between">
+              <span className="font-display text-[10px] uppercase tracking-widest text-iron-muted">Role</span>
+              <span className="font-mono text-[13px] text-iron-text capitalize">{profile?.role ?? 'athlete'}</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="font-display text-[10px] uppercase tracking-widest text-iron-muted">Email</span>
+              <span className="font-mono text-[13px] text-iron-text">{user?.email}</span>
+            </div>
             <button
               onClick={signOut}
-              className="press w-full h-[52px] bg-transparent border border-iron-border2 rounded-iron font-display font-bold text-sm uppercase tracking-wider text-iron-muted"
+              className="press w-full h-[52px] bg-transparent border border-iron-border2 rounded-iron font-display font-bold text-sm uppercase tracking-wider text-iron-muted mt-1"
             >
               Sign Out
             </button>

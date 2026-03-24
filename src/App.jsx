@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useApp } from './context/AppContext'
-import Auth from './pages/Auth'
-import Dashboard    from './pages/Dashboard'
-import WorkoutPage  from './pages/Workout'
-import MealsPage    from './pages/Meals'
-import ProgressPage from './pages/Progress'
-import PlansPage    from './pages/Plans'
-import SettingsPage from './pages/Settings'
+import Auth            from './pages/Auth'
+import OnboardingPage  from './pages/Onboarding'
+import Dashboard       from './pages/Dashboard'
+import WorkoutPage     from './pages/Workout'
+import MealsPage       from './pages/Meals'
+import ProgressPage    from './pages/Progress'
+import PlansPage       from './pages/Plans'
+import SettingsPage    from './pages/Settings'
+import CoachDashboard  from './pages/CoachDashboard'
 
-// ─── Icons (20px — 6-tab nav needs tighter icons) ─────────────────────────────
+// ─── Icons (20px — tighter for multi-tab nav) ──────────────────────────────────
 
 function IconHome({ active }) {
   return (
@@ -114,9 +116,30 @@ function IconGear({ active }) {
   )
 }
 
-// ─── Tab config ───────────────────────────────────────────────────────────────
+function IconUsers({ active }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle
+        cx="9" cy="7" r="3"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        fill={active ? 'currentColor' : 'none'}
+      />
+      <path
+        d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinecap="round"
+      />
+      <circle cx="18" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M21 20c0-2.761-1.343-5-3-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
 
-const TABS = [
+// ─── Tab configs ───────────────────────────────────────────────────────────────
+
+const ATHLETE_TABS = [
   { id: 'home',     label: 'Home',     Icon: IconHome      },
   { id: 'workout',  label: 'Workout',  Icon: IconDumbbell  },
   { id: 'meals',    label: 'Meals',    Icon: IconFork      },
@@ -125,21 +148,51 @@ const TABS = [
   { id: 'settings', label: 'Settings', Icon: IconGear      },
 ]
 
+const COACH_TABS = [
+  { id: 'clients',  label: 'Clients',  Icon: IconUsers     },
+  { id: 'plans',    label: 'Plans',    Icon: IconClipboard },
+  { id: 'settings', label: 'Settings', Icon: IconGear      },
+]
+
+// "both" = athlete tabs + clients tab between Plans and Settings
+const BOTH_TABS = [
+  { id: 'home',     label: 'Home',     Icon: IconHome      },
+  { id: 'workout',  label: 'Workout',  Icon: IconDumbbell  },
+  { id: 'meals',    label: 'Meals',    Icon: IconFork      },
+  { id: 'progress', label: 'Progress', Icon: IconChart     },
+  { id: 'plans',    label: 'Plans',    Icon: IconClipboard },
+  { id: 'clients',  label: 'Clients',  Icon: IconUsers     },
+  { id: 'settings', label: 'Settings', Icon: IconGear      },
+]
+
+function getTabsForRole(role) {
+  if (role === 'coach') return COACH_TABS
+  if (role === 'both')  return BOTH_TABS
+  return ATHLETE_TABS
+}
+
+function getDefaultTab(role) {
+  return role === 'coach' ? 'clients' : 'home'
+}
+
+// ─── Page router ───────────────────────────────────────────────────────────────
+
 function ActivePage({ tab, onNavigate }) {
   switch (tab) {
-    case 'home':     return <Dashboard    onNavigate={onNavigate} />
-    case 'workout':  return <WorkoutPage  onNavigate={onNavigate} />
-    case 'meals':    return <MealsPage    onNavigate={onNavigate} />
-    case 'progress': return <ProgressPage onNavigate={onNavigate} />
-    case 'plans':    return <PlansPage    onNavigate={onNavigate} />
-    case 'settings': return <SettingsPage onNavigate={onNavigate} />
-    default:         return <Dashboard    onNavigate={onNavigate} />
+    case 'home':     return <Dashboard       onNavigate={onNavigate} />
+    case 'workout':  return <WorkoutPage     onNavigate={onNavigate} />
+    case 'meals':    return <MealsPage       onNavigate={onNavigate} />
+    case 'progress': return <ProgressPage    onNavigate={onNavigate} />
+    case 'plans':    return <PlansPage       onNavigate={onNavigate} />
+    case 'clients':  return <CoachDashboard  onNavigate={onNavigate} />
+    case 'settings': return <SettingsPage    onNavigate={onNavigate} />
+    default:         return <Dashboard       onNavigate={onNavigate} />
   }
 }
 
-// ─── Bottom nav ───────────────────────────────────────────────────────────────
+// ─── Bottom nav ────────────────────────────────────────────────────────────────
 
-function BottomNav({ active, onSelect }) {
+function BottomNav({ tabs, active, onSelect }) {
   return (
     <nav
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-iron-surface border-t border-iron-border z-50 pb-safe"
@@ -147,7 +200,7 @@ function BottomNav({ active, onSelect }) {
       aria-label="Main navigation"
     >
       <div className="flex items-stretch">
-        {TABS.map(({ id, label, Icon }) => {
+        {tabs.map(({ id, label, Icon }) => {
           const isActive = active === id
           return (
             <button
@@ -162,7 +215,6 @@ function BottomNav({ active, onSelect }) {
                 isActive ? 'text-iron-accent' : 'text-iron-muted',
               ].join(' ')}
             >
-              {/* Active indicator */}
               {isActive && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-iron-accent rounded-b glow-accent" />
               )}
@@ -185,7 +237,7 @@ function BottomNav({ active, onSelect }) {
   )
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+// ─── Loading screen ─────────────────────────────────────────────────────────────
 
 function LoadingScreen() {
   return (
@@ -202,18 +254,28 @@ function LoadingScreen() {
   )
 }
 
+// ─── App ───────────────────────────────────────────────────────────────────────
+
 export default function App() {
+  const { authLoading, user, loading, profile } = useApp()
+
+  const role = profile?.role ?? 'athlete'
+  const tabs = getTabsForRole(role)
+
   const [activeTab, setActiveTab] = useState('home')
-  const { authLoading, user, loading } = useApp()
 
   if (authLoading) return <LoadingScreen />
-  if (!user) return <Auth />
-  if (loading) return <LoadingScreen />
+  if (!user)       return <Auth />
+  if (loading)     return <LoadingScreen />
+  if (!profile?.onboarded) return <OnboardingPage />
+
+  // Ensure the active tab is valid for this role (e.g. coach has no 'home')
+  const validTab = tabs.some(t => t.id === activeTab) ? activeTab : getDefaultTab(role)
 
   return (
     <>
-      <ActivePage tab={activeTab} onNavigate={setActiveTab} />
-      <BottomNav active={activeTab} onSelect={setActiveTab} />
+      <ActivePage tab={validTab} onNavigate={setActiveTab} />
+      <BottomNav tabs={tabs} active={validTab} onSelect={setActiveTab} />
     </>
   )
 }

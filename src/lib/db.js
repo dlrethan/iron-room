@@ -12,6 +12,9 @@ async function getUserId() {
 
 function rowToProfile(row) {
   return {
+    displayName:         row.display_name ?? null,
+    role:                row.role ?? 'athlete',
+    onboarded:           row.onboarded ?? false,
     startingWeight:      row.starting_weight,
     calorieTarget:       row.calorie_target,
     proteinTarget:       row.protein_target,
@@ -26,6 +29,9 @@ function rowToProfile(row) {
 function profileToRow(p, userId) {
   return {
     user_id:                 userId,
+    display_name:            p.displayName ?? null,
+    role:                    p.role ?? 'athlete',
+    onboarded:               p.onboarded ?? false,
     starting_weight:         p.startingWeight,
     calorie_target:          p.calorieTarget,
     protein_target:          p.proteinTarget,
