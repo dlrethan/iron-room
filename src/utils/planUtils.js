@@ -101,3 +101,19 @@ export function getPreviousLogForDay(workoutLogs, dayName, beforeDate) {
 export function getMealLogForDate(mealLogs, dateStr) {
   return mealLogs.find(l => l.date === dateStr) ?? null
 }
+
+/**
+ * Returns the next scheduled workout day after a given date.
+ * Returns { dayName, workoutName } or null.
+ */
+export function getNextWorkoutDay(today = new Date()) {
+  for (let i = 1; i <= 7; i++) {
+    const next = new Date(today)
+    next.setDate(today.getDate() + i)
+    const dayName = DAY_NAMES[next.getDay()]
+    if (DAY_TO_WORKOUT[dayName]) {
+      return { dayName, workoutName: DAY_TO_WORKOUT[dayName] }
+    }
+  }
+  return null
+}

@@ -6,6 +6,7 @@ import {
   getTodaysMeals,
   getMealLogForDate,
   getWorkoutLogForDate,
+  getNextWorkoutDay,
 } from '../utils/planUtils'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -252,7 +253,9 @@ function WorkoutCard({ workout, progWeek, isLogged, onStart }) {
 
 // ─── Rest Day Card ────────────────────────────────────────────────────────────
 
-function RestDayCard() {
+function RestDayCard({ today }) {
+  const next = getNextWorkoutDay(today)
+
   return (
     <div className="bg-iron-surface border border-iron-border rounded-iron p-4">
       <h2 className="font-display font-black text-iron-text leading-none mb-1" style={{ fontSize: 'clamp(2.2rem, 10vw, 3rem)' }}>
@@ -264,14 +267,16 @@ function RestDayCard() {
       <p className="font-mono text-[13px] text-iron-muted leading-relaxed">
         No training scheduled today. Eat your protein, hydrate, and let the muscle repair.
       </p>
-      <div className="mt-4 pt-4 border-t border-iron-border flex items-center gap-2">
-        <span className="font-display text-[11px] uppercase tracking-widest text-iron-muted">
-          Next session:
-        </span>
-        <span className="font-display text-[11px] uppercase tracking-widest text-iron-accent">
-          Mon · Push Day
-        </span>
-      </div>
+      {next && (
+        <div className="mt-4 pt-4 border-t border-iron-border flex items-center gap-2">
+          <span className="font-display text-[11px] uppercase tracking-widest text-iron-muted">
+            Next session:
+          </span>
+          <span className="font-display text-[11px] uppercase tracking-widest text-iron-accent">
+            {next.dayName} · {next.workoutName} Day
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -358,7 +363,7 @@ export default function Dashboard({ onNavigate }) {
             onStart={() => onNavigate('workout')}
           />
         ) : (
-          <RestDayCard />
+          <RestDayCard today={today} />
         )}
 
         {/* ── Macro rings ──────────────────────────────────────────────────── */}
