@@ -795,6 +795,18 @@ export default function Workout({ onNavigate }) {
       const exLog = prev[exerciseName]
       const sets  = [...exLog.sets]
       sets[setIdx] = { ...sets[setIdx], completed: true }
+
+      // After completing the top set (set 0), auto-fill backdown weight
+      // on any remaining sets that don't already have a weight entered.
+      if (setIdx === 0 && sets[0].weight !== '') {
+        const backdown = String(roundToNearest2_5(Number(sets[0].weight) * 0.875))
+        for (let i = 1; i < sets.length; i++) {
+          if (!sets[i].completed && sets[i].weight === '') {
+            sets[i] = { ...sets[i], weight: backdown }
+          }
+        }
+      }
+
       const next = { ...prev, [exerciseName]: { ...exLog, sets } }
       persistLog(next)
       return next
